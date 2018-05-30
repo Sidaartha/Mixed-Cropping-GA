@@ -336,16 +336,12 @@ def Evolution(n, CXPB, MUTPB, NGen):
 	return Best
 
 # Running Genetic Algorithm
-# Best_ind = Evolution(n, CXPB, MUTPB, NGen)
+Best_ind = Evolution(n, CXPB, MUTPB, NGen)
 
-for i in range(12):
-	loop = True
-	Current_month = i+1
-	Best_ind = Evolution(n, CXPB, MUTPB, NGen)
-
-
-
-
+# for i in range(12):
+# 	loop = True
+# 	Current_month = i+1
+# 	Best_ind = Evolution(n, CXPB, MUTPB, NGen)
 
 #---------------------------------------------- Visualisation ------------------------------------------------
 
