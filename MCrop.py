@@ -39,13 +39,12 @@ Type 	= np.array(Type)
 #--------------------------------------------- Variable info ----------------------------------------------
 
 Current_month = datetime.datetime.now().month
-Current_month_str = datetime.datetime.today().strftime('%B')
-
 Max_=[]
 Avg_=[]
 Std_=[]
 global NGen
 Debug = False
+print_ = False
 loop = False
 
 n 	= 300
@@ -242,14 +241,14 @@ def Evolution(n, CXPB, MUTPB, NGen):
 	# create an initial population of 'n' individuals
 	pop = toolbox.population(n)
 
-	if loop == False: print("Start of evolution")
+	if print_ == True: print("Start of evolution")
 	
 	# Evaluate the entire population
 	fitnesses = list(map(toolbox.evaluate, pop))
 	for ind, fit in zip(pop, fitnesses):
 		ind.fitness.values = fit
 	
-	if loop == False: print("  Evaluated %i individuals" % len(pop))
+	if print_ == True: print("  Evaluated %i individuals" % len(pop))
 
 	# Extracting all the fitnesses of 
 	fits = [ind.fitness.values[0] for ind in pop]
@@ -258,7 +257,7 @@ def Evolution(n, CXPB, MUTPB, NGen):
 	for g in range(NGen):
 
 		gen = g+1
-		if loop == False: print("-- Generation %i --" % gen)
+		if print_ == True: print("-- Generation %i --" % gen)
 		
 		# Select the next generation individuals
 		offspring = toolbox.select(pop, len(pop))
@@ -290,7 +289,7 @@ def Evolution(n, CXPB, MUTPB, NGen):
 		for ind, fit in zip(invalid_ind, fitnesses):
 			ind.fitness.values = fit
 		
-		if loop == False: print("  Evaluated %i individuals" % len(invalid_ind))
+		if print_ == True: print("  Evaluated %i individuals" % len(invalid_ind))
 		
 		# The population is entirely replaced by the offspring
 		pop[:] = offspring
@@ -307,15 +306,18 @@ def Evolution(n, CXPB, MUTPB, NGen):
 		Avg_.append(mean)
 		Std_.append(std)
 		
-		if loop == False: print("  Min %s" % min(fits))
-		if loop == False: print("  Max %s" % max(fits))
-		if loop == False: print("  Avg %s" % mean)
-		if loop == False: print("  Std %s" % std, '\n')
+		if print_ == True: print("  Min %s" % min(fits))
+		if print_ == True: print("  Max %s" % max(fits))
+		if print_ == True: print("  Avg %s" % mean)
+		if print_ == True: print("  Std %s" % std, '\n')
 	
-	if loop == False: print("-- End of successful evolution --")
+	if print_ == True: print("-- End of successful evolution --")
 
 	Best = tools.selBest(pop, 1)[0]	
-	print("Best individual is %s, %s" % (Best, Best.fitness.values))
+
+	#-------------------------------------------- Displaying output -----------------------------------------
+
+	if loop == False: print("Best individual is %s, %s" % (Best, Best.fitness.values))
 
 	# To access global var 'profit', To display profit due to each crop in 'Best' individual
 	Fitness_value(Best)
@@ -330,18 +332,35 @@ def Evolution(n, CXPB, MUTPB, NGen):
 		len(Harvest_month(val)), Root_depth[val*12-1], Water_req[val*12-1], \
 		len(Harvest_month(val))*Culti_cost[val*12-1], profit[i]])
 		Total_profit = Total_profit + profit[i]
-	print(t)
-	print("Total Profit : %s " % Total_profit)
+	if loop == False: print(t)
+	if loop == False: print("Total Profit : %s " % Total_profit)
 
-	return Best
+	return Best, t, Total_profit
 
-# Running Genetic Algorithm
-Best_ind = Evolution(n, CXPB, MUTPB, NGen)
+# --------------------------------------- Running Genetic Algorithm ------------------------------------------
 
-# for i in range(12):
-# 	loop = True
-# 	Current_month = i+1
-# 	Best_ind = Evolution(n, CXPB, MUTPB, NGen)
+# Deciding crops for the present month 
+# Best_ind, _, _ = Evolution(n, CXPB, MUTPB, NGen)
+
+# Looping to find which month to start
+months_ = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
+profit_month = []
+t_month = []
+best_month = []
+for i in range(12):
+	print_ = False
+	loop = True
+	Current_month = i+1
+	Best_ind, t, T_profit  = Evolution(n, CXPB, MUTPB, NGen)
+	profit_month.append(T_profit)
+	best_month.append(Best_ind)
+	t_month.append(t)
+
+id_month = np.argmax(profit_month)
+print('Starting from %s is prefered.' %months_[id_month])
+print('Total Profit : ', profit_month[id_month])
+print(best_month[id_month])
+print(t_month[id_month])
 
 #---------------------------------------------- Visualisation ------------------------------------------------
 
@@ -362,4 +381,4 @@ plt.legend()
 #------------------------------------------------ Debugging ---------------------------------------------------
 
 # Debug = True
-# Fitness_value(Best_ind)
+# Fitness_value(best_month[id_month])
