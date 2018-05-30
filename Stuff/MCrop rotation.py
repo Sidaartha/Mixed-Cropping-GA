@@ -16,53 +16,42 @@ style.use('ggplot')
 
 # Reading CSV file
 df = pd.read_csv('Gudur_Rythu_Bazar_2017.csv')
-df.drop(['Comments'], axis = 1, inplace=True)	# Dropping 'Comments' column
+df.drop(['Comments'], axis = 1, inplace=True)	#Dropping 'Comments' column
 
 # np arrays of colomns
 Harvest_time = df['Maturity_mo']
 Harvest_time = np.array(Harvest_time)
-Crop_name 	= df['Type']
-Crop_name 	= np.array(Crop_name)
-Culti_cost 	= df['Cost_Culti_acre']
-Culti_cost 	= np.array(Culti_cost)
-Root_depth 	= df['Root_Depth']
-Root_depth 	= np.array(Root_depth)
-Water_req 	= df['Water_Req']
-Water_req 	= np.array(Water_req)
-Profit 	= df['Profit']
-Profit 	= np.array(Profit)
-Month 	= df['Month']
-Month 	= np.array(Month)
-Type 	= df['Type_Code']
-Type 	= np.array(Type)
-
-#--------------------------------------------- Variable info ----------------------------------------------
+Month = df['Month']
+Month = np.array(Month)
+Crop_name = df['Type']
+Crop_name = np.array(Crop_name)
+Profit = df['Profit']
+Profit = np.array(Profit)
+Culti_cost = df['Cost_Culti_acre']
+Culti_cost = np.array(Culti_cost)
+Type = df['Type_Code']
+Type = np.array(Type)
+Root_depth = df['Root_Depth']
+Root_depth = np.array(Root_depth)
+Water_req = df['Water_Req']
+Water_req = np.array(Water_req)
 
 Current_month = datetime.datetime.now().month
+Current_month = 5
 Current_month_str = datetime.datetime.today().strftime('%B')
-
+Debug = False
 Max_=[]
 Avg_=[]
 Std_=[]
-global NGen
-Debug = False
-loop = False
+profit_wt = 0.7
+risk_wt = -0.3
+root_risk_wt = 0.5
+water_risk_wt = 0.5
+n_i = 1		#Lower limit of no.of crops
+n_f = 20	#Upper limit of no.of crops / Total no.of crops
+m = 6		#No.of crops to decide
 
-n 	= 300
-m	= 5			# No.of crops to decide
-n_i = Type[0] 	# Lower limit of no.of crops
-n_f	= Type[-1] 	# Upper limit of no.of crops / Total no.of crops
-NGen 	= 10		# Number of generations/Number of itterations			
-CXPB	= 0.5		# CXPB  is the probability with which two individuals are crossed
-MUTPB 	= 0.2		# MUTPB is the probability for mutating an individual
-
-# Weights to cal weighted avg
-profit_wt	= 0.7
-risk_wt 	= -0.3
-root_risk_wt	= 0.5
-water_risk_wt	= 0.5
-
-#----------------------------------------------------------------------------------------------------------
+#--------------------------------------------------------------------------------------------------------
 
 # Outputs list of harvest months
 def Harvest_month(code_val):
@@ -71,7 +60,7 @@ def Harvest_month(code_val):
 	for i in range(12):
 		if (i+1)*(Harvest_time[(code_val-1)*12]+1) <= 12: 
 			crop_id = (code_val-1)*12 + Harvest_time[(code_val-1)*12] + (Current_month -1) + \
-			i*(Harvest_time[(code_val-1)*12]+1)		# continuation
+			i*(Harvest_time[(code_val-1)*12]+1)		#continuation
 			crop_id_verify = Harvest_time[(code_val-1)*12] + (Current_month -1) + i*(Harvest_time[(code_val-1)*12]+1)
 			if crop_id_verify < 12:
 				crop_id = crop_id
@@ -105,15 +94,12 @@ def Planting_month(code_val):
 			break
 	return planting_month
 
-#----------------------------------------------- Fitness Function ----------------------------------------------
-# Objective fun : [1] Maximize Profit
-#				  [2] Mininize Risk 
-# 			i.e : Max(W1*Profit -W2*Risk)
+# Total profit of each individual 
+# Objective fun : Sum of profits of 'm' crops
 # Subject to constrains : [1] Harvest time.
 #						  [2] Crop cycle in a year based on harvest time.
 #						  [3] Based on root system.
 #						  [4] Based on water requirement.
-
 def Fitness_value(individual):
 
 	global profit
@@ -218,14 +204,14 @@ def Fitness_value(individual):
 	# return sum(profit), risk
 	return combined_val, 
 
-# ------------------------------------------------ Creating class -----------------------------------------------
+# ----------------------------------------- Creating class --------------------------------------------------
 
 # creator.create('FitnessMax', base.Fitness, weights = (1.0, -1.0))
 creator.create('FitnessMax', base.Fitness, weights = (1.0, ))
 creator.create('Individual', list, fitness = creator.FitnessMax)
 
 toolbox = base.Toolbox()
-toolbox.register('attr_value', random.randint, n_i, n_f)	# generator
+toolbox.register('attr_value', random.randint, n_i, n_f)	#generator
 # Structure initializers
 toolbox.register('individual', tools.initRepeat, creator.Individual, toolbox.attr_value, m)	
 toolbox.register('population', tools.initRepeat, list, toolbox.individual)
@@ -237,19 +223,24 @@ toolbox.register('select', tools.selTournament, tournsize=3)
 
 #------------------------------------------ Evolution operation ----------------------------------------------
 
-def Evolution(n, CXPB, MUTPB, NGen):
+def main():
 
-	# create an initial population of 'n' individuals
-	pop = toolbox.population(n)
+	# create an initial population of 300 individuals
+	pop = toolbox.population(n=300)
+	# CXPB  is the probability with which two individuals are crossed
+	# MUTPB is the probability for mutating an individual
+	# Number of generations/Number of itterations
+	global NGen
+	CXPB, MUTPB, NGen = 0.5, 0.2, 25
 
-	if loop == False: print("Start of evolution")
+	print("Start of evolution")
 	
 	# Evaluate the entire population
 	fitnesses = list(map(toolbox.evaluate, pop))
 	for ind, fit in zip(pop, fitnesses):
 		ind.fitness.values = fit
 	
-	if loop == False: print("  Evaluated %i individuals" % len(pop))
+	print("  Evaluated %i individuals" % len(pop))
 
 	# Extracting all the fitnesses of 
 	fits = [ind.fitness.values[0] for ind in pop]
@@ -258,7 +249,7 @@ def Evolution(n, CXPB, MUTPB, NGen):
 	for g in range(NGen):
 
 		gen = g+1
-		if loop == False: print("-- Generation %i --" % gen)
+		print("-- Generation %i --" % gen)
 		
 		# Select the next generation individuals
 		offspring = toolbox.select(pop, len(pop))
@@ -290,7 +281,7 @@ def Evolution(n, CXPB, MUTPB, NGen):
 		for ind, fit in zip(invalid_ind, fitnesses):
 			ind.fitness.values = fit
 		
-		if loop == False: print("  Evaluated %i individuals" % len(invalid_ind))
+		print("  Evaluated %i individuals" % len(invalid_ind))
 		
 		# The population is entirely replaced by the offspring
 		pop[:] = offspring
@@ -307,20 +298,19 @@ def Evolution(n, CXPB, MUTPB, NGen):
 		Avg_.append(mean)
 		Std_.append(std)
 		
-		if loop == False: print("  Min %s" % min(fits))
-		if loop == False: print("  Max %s" % max(fits))
-		if loop == False: print("  Avg %s" % mean)
-		if loop == False: print("  Std %s" % std, '\n')
+		print("  Min %s" % min(fits))
+		print("  Max %s" % max(fits))
+		print("  Avg %s" % mean)
+		print("  Std %s" % std, '\n')
 	
-	if loop == False: print("-- End of successful evolution --")
-
+	print("-- End of successful evolution --")
+	global Best
 	Best = tools.selBest(pop, 1)[0]	
 	print("Best individual is %s, %s" % (Best, Best.fitness.values))
 
 	# To access global var 'profit', To display profit due to each crop in 'Best' individual
 	Fitness_value(Best)
 
-	# Printing Data in table format
 	Total_profit = 0
 	t = PrettyTable(['Crop','Planting Months', 'Harvest Months', 'Cycles', 'Root Sys', \
 		'Water Req', 'Culti Cost', 'Profit'])
@@ -333,19 +323,8 @@ def Evolution(n, CXPB, MUTPB, NGen):
 	print(t)
 	print("Total Profit : %s " % Total_profit)
 
-	return Best
-
-# Running Genetic Algorithm
-# Best_ind = Evolution(n, CXPB, MUTPB, NGen)
-
-for i in range(12):
-	loop = True
-	Current_month = i+1
-	Best_ind = Evolution(n, CXPB, MUTPB, NGen)
-
-
-
-
+if __name__ == "__main__":
+	main()
 
 #---------------------------------------------- Visualisation ------------------------------------------------
 
@@ -361,9 +340,9 @@ plt.xlabel('Generation')
 plt.ylabel('Total Profit')
 plt.title('Max - Avg - Std')
 plt.legend()
-# plt.show()
+plt.show()
 
 #------------------------------------------------ Debugging ---------------------------------------------------
 
-# Debug = True
-# Fitness_value(Best_ind)
+Debug = True
+Fitness_value(Best)
