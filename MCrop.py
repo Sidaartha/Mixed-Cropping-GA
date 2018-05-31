@@ -38,6 +38,7 @@ Type 	= np.array(Type)
 
 #--------------------------------------------- Variable info ----------------------------------------------
 
+months_ = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
 Current_month = datetime.datetime.now().month
 Current_month_str = datetime.datetime.today().strftime('%B')
 Max_=[]
@@ -67,16 +68,18 @@ water_risk_wt	= 0.5
 #				  [2] Mininize Risk 
 # 			i.e : Max(W1*Profit -W2*Risk)
 # Subject to constrains : [1] Harvest time.
-#						  [2] Crop cycle in a year based on harvest time.
-#						  [3] Based on root system.
-#						  [4] Based on water requirement.
+#						  [2] Based on root system.
+#						  [3] Based on water requirement.
 
 def Fitness_value(individual):
 
 	global profit
 	global harvest_month
+	global planting_month
+
 	profit = []
 	harvest_month = []
+	planting_month = []
 	root_depth = []
 	water_req = []
 
@@ -85,6 +88,7 @@ def Fitness_value(individual):
 	if len(set(individual))==m:
 		for i in range(len(individual)):
 			harvest_month_itt = []
+			planting_month_itt = []
 			Crop = individual[i]
 			for e in range(len(Type)):
 				if Type[e]==Crop:
@@ -96,19 +100,22 @@ def Fitness_value(individual):
 			id_verify = Current_month + Harvest_time[type_id] -1
 			if id_verify < 12:
 				profit_i = Profit[profit_id]
+				planting_month_itt.append(Month[profit_id - Harvest_time[type_id]])
 				harvest_month_itt.append(Month[profit_id])
 				# break
 			else:
 				profit_i = Profit[type_id + profit_id%12]
+				planting_month_itt.append(Month[type_id + profit_id%12 - Harvest_time[type_id]])
 				harvest_month_itt.append(Month[type_id + profit_id%12])
 				# break
 			profit.append(profit_i)
+			planting_month.append(planting_month_itt)
 			harvest_month.append(harvest_month_itt)
 			root_depth.append(Root_depth[type_id])
 			water_req.append(Water_req[type_id])
 	else:
 		profit=[0]
-	# print(sum(profit))
+
 	Profit_percent = sum(profit)/10**4
 
 	#---------------------------------------------- Estimating Risk -------------------------------------------
@@ -281,7 +288,7 @@ def Evolution(n, CXPB, MUTPB, NGen):
 		'Water Req', 'Culti Cost', 'Profit'])
 	for i in range(len(Best)):
 		val = Best[i]
-		t.add_row([Crop_name[val*12-1], Current_month_str, ', '.join(harvest_month[i]), Root_depth[val*12-1], \
+		t.add_row([Crop_name[val*12-1], ', '.join(planting_month[i]), ', '.join(harvest_month[i]), Root_depth[val*12-1], \
 			Water_req[val*12-1], len(harvest_month[i])*Culti_cost[val*12-1], profit[i]])
 		Total_profit = Total_profit + profit[i]
 	if loop == False: print(t)
@@ -289,30 +296,33 @@ def Evolution(n, CXPB, MUTPB, NGen):
 
 	return Best, t, Total_profit
 
-# --------------------------------------- Running Genetic Algorithm ------------------------------------------
+# ======================================== Running Genetic Algorithm =========================================
+# ---------------------------------- Deciding crops for the present month ------------------------------------
 
-# Deciding crops for the present month 
+print('Start planting now, i.e. %s' %months_[Current_month-1])
 Best_ind, _, _ = Evolution(n, CXPB, MUTPB, NGen)
 
-# Looping to find which month to start
-# months_ = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
-# profit_month = []
-# t_month = []
-# best_month = []
-# for i in range(12):
-# 	print_ = False
-# 	loop = True
-# 	Current_month = i+1
-# 	Best_ind, t, T_profit  = Evolution(n, CXPB, MUTPB, NGen)
-# 	profit_month.append(T_profit)
-# 	best_month.append(Best_ind)
-# 	t_month.append(t)
+# ---------------------------------- Looping to find which month to start ------------------------------------
 
-# id_month = np.argmax(profit_month)
-# print('Starting from %s is prefered.' %months_[id_month])
-# print('Total Profit : ', profit_month[id_month])
-# print(best_month[id_month])
-# print(t_month[id_month])
+profit_month = []
+t_month = []
+best_month = []
+print('\nIf planting starts on :')
+for i in range(12):
+	print_ = False
+	loop = True
+	Current_month = i+1
+	Best_ind, t, T_profit  = Evolution(n, CXPB, MUTPB, NGen)
+	print(months_[i], ':', T_profit)
+	profit_month.append(T_profit)
+	best_month.append(Best_ind)
+	t_month.append(t)
+
+id_month = np.argmax(profit_month)
+print('Starting from %s is prefered.' %months_[id_month])
+print('Total Profit : ', profit_month[id_month])
+print(best_month[id_month])
+print(t_month[id_month])
 
 #---------------------------------------------- Visualisation ------------------------------------------------
 

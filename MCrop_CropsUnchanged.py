@@ -40,9 +40,9 @@ Type 	= np.array(Type)
 
 months_ = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
 Current_month = datetime.datetime.now().month
-Max_=[]
-Avg_=[]
-Std_=[]
+Max_all=[]
+Avg_all=[]
+Std_all=[]
 global NGen
 Debug = False
 print_ = False
@@ -206,6 +206,10 @@ toolbox.register('select', tools.selTournament, tournsize=3)
 
 def Evolution(n, CXPB, MUTPB, NGen):
 
+	Max_=[]
+	Avg_=[]
+	Std_=[]
+
 	# create an initial population of 'n' individuals
 	pop = toolbox.population(n)
 
@@ -273,6 +277,10 @@ def Evolution(n, CXPB, MUTPB, NGen):
 		Max_.append(max(fits))
 		Avg_.append(mean)
 		Std_.append(std)
+
+		Max_all.append(Max_)
+		Avg_all.append(Avg_)
+		Std_all.append(Std_)
 		
 		if print_ == True: print("  Min %s" % min(fits))
 		if print_ == True: print("  Max %s" % max(fits))
@@ -335,13 +343,16 @@ print(t_month[id_month])
 
 #---------------------------------------------- Visualisation ------------------------------------------------
 
-Max_ = np.array(Max_)
-x_ = np.arange(1,len(Max_)+1)
+# Which index value to point to, all stats values are in Max_all, Avg_all, Std_all lists
+# To visualise for each month use num value of month, i.e : 1 to 12
+index_visual=0
 
-plt.bar(x_-0.2, Max_, width = 0.2,align='center', label='Max')
-plt.bar(x_, Avg_, width = 0.2,align='center', label='Avg')
-plt.bar(x_+0.2, Std_, width = 0.2,align='center', label='Std')
-plt.axis([0, NGen+1, 0, 1.4*max(Max_)])
+x_ = np.arange(1,len(Max_all[index_visual])+1)
+
+plt.bar(x_-0.2, Max_all[index_visual], width = 0.2,align='center', label='Max')
+plt.bar(x_, Avg_all[index_visual], width = 0.2,align='center', label='Avg')
+plt.bar(x_+0.2, Std_all[index_visual], width = 0.2,align='center', label='Std')
+plt.axis([0, NGen+1, 0, 1.4*max(Max_all[index_visual])])
 plt.axes().xaxis.set_major_locator(ticker.MultipleLocator(1))
 plt.xlabel('Generation')
 plt.ylabel('Total Profit')
