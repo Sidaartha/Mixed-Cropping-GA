@@ -43,9 +43,6 @@ months_dict = {'January' : 1, 'February' : 2, 'March' : 3, 'April' : 4, 'May' : 
 'July' : 7, 'August' : 8, 'September' : 9, 'October' : 10, 'November' : 11, 'December' : 12}
 Current_month = datetime.datetime.now().month
 Current_month_str = datetime.datetime.today().strftime('%B')
-Max_=[]
-Avg_=[]
-Std_=[]
 
 Debug = False
 print_ = False
@@ -166,8 +163,8 @@ def Fitness_value(individual):
 
 	#-----------------------------------------------------------------------------------------------------------
 	
-	# combined_val = (profit_wt*Profit_percent+risk_wt*Risk_percent)/(profit_wt+risk_wt)
-	combined_val = (profit_wt*Profit_percent+risk_wt*Risk_percent)
+	combined_val = (profit_wt*Profit_percent+risk_wt*Risk_percent)/(profit_wt+risk_wt)
+	# combined_val = (profit_wt*Profit_percent+risk_wt*Risk_percent)
 	
 	if Debug == True:
 		print('-- Debugging --')
@@ -197,6 +194,10 @@ toolbox.register('select', tools.selTournament, tournsize=3)
 #------------------------------------------ Evolution operation ----------------------------------------------
 
 def Evolution(m, n, CXPB, MUTPB, NGen):
+
+	Max_=[]
+	Avg_=[]
+	Std_=[]
 
 	# Structure initializers
 	toolbox.register('individual', tools.initRepeat, creator.Individual, toolbox.attr_value, m)	
@@ -268,14 +269,29 @@ def Evolution(m, n, CXPB, MUTPB, NGen):
 		Max_.append(max(fits))
 		Avg_.append(mean)
 		Std_.append(std)
+
 		if print_ == True: print("  Min %s" % min(fits))
 		if print_ == True: print("  Max %s" % max(fits))
 		if print_ == True: print("  Avg %s" % mean)
 		if print_ == True: print("  Std %s" % std, '\n')
-	
+
 	if print_ == True: print("-- End of successful evolution --")
 
 	Best = tools.selBest(pop, 1)[0]	
+
+	#---------------------------------------------- Visualisation --------------------------------------------
+
+	# x_ = np.arange(1,len(Max_)+1)
+	# plt.bar(x_-0.2, Max_, width = 0.2,align='center', label='Max')
+	# plt.bar(x_, Avg_, width = 0.2,align='center', label='Avg')
+	# plt.bar(x_+0.2, Std_, width = 0.2,align='center', label='Std')
+	# plt.axis([0, NGen+1, 0, 1.4*max(Max_)])
+	# plt.axes().xaxis.set_major_locator(ticker.MultipleLocator(1))
+	# plt.xlabel('Generation')
+	# plt.ylabel('Total Profit')
+	# plt.title('Max - Avg - Std')
+	# plt.legend()
+	# plt.show()
 
 	#---------------------------------------- Storing output to 't' ------------------------------------------
 
@@ -294,80 +310,11 @@ def Evolution(m, n, CXPB, MUTPB, NGen):
 
 	return Best, t, Total_profit, harvest_month
 
-# ======================================== Running Genetic Algorithm =========================================
+#--------------------------------------------- Single best crop ----------------------------------------------
 
+def SingleCrop(single_crop):
 
-# print_ = True
-# Best_ind, t_ind, T_p_ind, _ = Evolution(m, n, CXPB, MUTPB, NGen)
-# print("Best individual is %s, %s" % (Best_ind, Best_ind.fitness.values))
-# print(t_ind)
-# print("Total Profit : %s " % T_p_ind)
-
-
-
-
-# i_count = 0
-# while True:
-
-# 	print('%sst Cycle'%(i_count+1))
-# 	if i_count == 0:
-# 		Best_ind, t_ind, T_p_ind, H_m_ind = Evolution(m, n, CXPB, MUTPB, NGen)
-# 	else:
-# 		# m = 
-# 		Best_ind, t_ind, T_p_ind, H_m_ind = Evolution(m, n, CXPB, MUTPB, NGen)
-
-# 	print("Best individual is %s, %s" % (Best_ind, Best_ind.fitness.values))
-# 	print(t_ind)
-# 	print("Total Profit : %s " % T_p_ind)
-# 	print(H_m_ind)
-# 	H_m_ind_val = []
-# 	for e in range(len(H_m_ind)):
-# 		H_m_ind_val.append(months_dict[H_m_ind[e]])
-# 	print(H_m_ind_val)
-# 	counter_h = Counter(H_m_ind_val)
-# 	print(Counter(H_m_ind_val))
-# 	Current_month = min(H_m_ind_val)
-# 	m = counter_h[Current_month]
-# 	Current_month = min(H_m_ind_val)+1
-
-# 	if i_count == 2 : break
-# 	i_count+=1
-
-
-
-
-Best_ind, t_ind, T_p_ind, H_m_ind = Evolution(m, n, CXPB, MUTPB, NGen)
-print("Best individual is %s, %s" % (Best_ind, Best_ind.fitness.values))
-print(t_ind)
-print("Total Profit : %s " % T_p_ind)
-
-
-H_m_ind_val = []
-for e in range(len(H_m_ind)):
-	H_m_ind_val.append(months_dict[H_m_ind[e]])
-H_m_ind_val=sorted(H_m_ind_val, key=int)
-counter_h = Counter(H_m_ind_val)
-H_m_ind_val=list(set(H_m_ind_val))
-
-crop_s=[]
-for H_cycles in range(len(H_m_ind_val)):
-	Current_month = H_m_ind_val[H_cycles]
-	m = counter_h[Current_month]
-	if m == 1 :
-		crop_s.append(H_cycles)
-		break
-	else:
-		pass
-	Current_month = H_m_ind_val[H_cycles]+1
-
-	Best_ind, t_ind, T_p_ind, H_m_ind = Evolution(m, n, CXPB, MUTPB, NGen)
-	print("Best individual is %s, %s" % (Best_ind, Best_ind.fitness.values))
-	print(t_ind)
-	print("Total Profit : %s " % T_p_ind)
-
-
-for e in range(len(crop_s)):
-	Current_month = H_m_ind_val[crop_s[e]]+1
+	Current_month = H_m_ind_val[single_crop]+1
 	profit_single = []
 	single_id_list = []
 	for i in range(n_f):
@@ -382,84 +329,110 @@ for e in range(len(crop_s)):
 	profit_single_m = max(profit_single)
 	single_id = single_id_list[np.argmax(profit_single)]
 
-
-	print("Best crop is ", Type[single_id])
-
 	# Data in table format
 	t_s = PrettyTable(['Crop','Planting Month', 'Harvest Month', 'Root Sys', 'Water Req', 'Culti Cost', 'Profit'])
 	t_s.add_row([Crop_name[single_id], Month[Current_month-1], Month[single_id], \
 	Root_depth[single_id], Water_req[single_id], Culti_cost[single_id], Profit[single_id]])
-	print(t_s)
-	print("Total Profit : ", profit_single_m)
+
+	return Type[single_id], t_s, profit_single_m, Month[single_id]
+
+# ======================================== Running Genetic Algorithm =========================================
+
+count_ga=0
+TotalProfit=[]
+
+visual = []
+
+while True:
+
+	if count_ga == 0:
+		Best_ind, t_ind, T_p_ind, H_m_ind = Evolution(m, n, CXPB, MUTPB, NGen)
+		TotalProfit.append(T_p_ind)
+		[visual.append([Current_month, months_dict[H_m_ind[vi]], vi+1, Best_ind[vi]]) for vi in range(len(Best_ind))]
+		
+		print("Best individual is %s, %s" % (Best_ind, Best_ind.fitness.values))
+		print(t_ind)
+		print("Total Profit : %s " % T_p_ind)
+
+	else : 
+		pass
+
+	H_m_ind_val = []
+	for e in range(len(H_m_ind)):
+		H_m_ind_val.append(months_dict[H_m_ind[e]])
+	H_m_ind_val=sorted(H_m_ind_val, key=int)
+	counter_h = Counter(H_m_ind_val)
+	H_m_ind_val=list(set(H_m_ind_val))
+	crop_s=[]
+	H_m_ind=[]
+	for H_cycles in range(len(H_m_ind_val)):
+		Current_month = H_m_ind_val[H_cycles]
+		m = counter_h[Current_month]
+		if m == 1 :
+			crop_s.append(H_cycles)
+		else:
+			Current_month = H_m_ind_val[H_cycles]+1
+
+			Best_ind, t_ind, T_p_ind, H_m_ind_i = Evolution(m, n, CXPB, MUTPB, NGen)
+			[ H_m_ind.append(H_m_ind_i[ii]) for ii in range(len(H_m_ind_i)) ]
+			TotalProfit.append(T_p_ind)
+			print("Best individual is %s, %s" % (Best_ind, Best_ind.fitness.values))
+			print(t_ind)
+			print("Total Profit : %s " % T_p_ind)
+
+	for S_cycle in range(len(crop_s)):
+		Best_ind, t_ind, T_p_ind, H_m_ind_i = SingleCrop(crop_s[S_cycle])
+		H_m_ind.append(H_m_ind_i)
+		TotalProfit.append(T_p_ind)
+		print("Best individual is ", Best_ind)
+		print(t_ind)
+		print("Total Profit : %s " % T_p_ind)
+
+	if count_ga == 2 : break
+	count_ga+=1
+
+print(sum(TotalProfit))
 
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-# ---------------------------------- Looping to find which month to start ------------------------------------
-
-# profit_month = []
-# t_month = []
-# best_month = []
-# print('\nIf planting starts on :')
-# for i in range(12):
-# 	print_ = False
-# 	Current_month = i+1
-# 	Best_ind, t, T_profit  = Evolution(n, CXPB, MUTPB, NGen)
-# 	print(months_[i], ':', T_profit)
-# 	profit_month.append(T_profit)
-# 	best_month.append(Best_ind)
-# 	t_month.append(t)
-
-# id_month = np.argmax(profit_month)
-# print('Starting from %s is prefered.' %months_[id_month])
-# print('Total Profit : ', profit_month[id_month])
-# print(best_month[id_month])
-# print(t_month[id_month])
-
-#---------------------------------------------- Visualisation ------------------------------------------------
-
-Max_ = np.array(Max_)
-x_ = np.arange(1,len(Max_)+1)
-
-plt.bar(x_-0.2, Max_, width = 0.2,align='center', label='Max')
-plt.bar(x_, Avg_, width = 0.2,align='center', label='Avg')
-plt.bar(x_+0.2, Std_, width = 0.2,align='center', label='Std')
-plt.axis([0, NGen+1, 0, 1.4*max(Max_)])
-plt.axes().xaxis.set_major_locator(ticker.MultipleLocator(1))
-plt.xlabel('Generation')
-plt.ylabel('Total Profit')
-plt.title('Max - Avg - Std')
+for i in range(len(visual)):
+	plt.plot([visual[i][0], visual[i][1]], [visual[i][2], visual[i][2]], label=Crop_name[visual[i][3]*12-1])
+	plt.scatter(visual[i][0], visual[i][2],marker='>')
+	plt.scatter(visual[i][1], visual[i][2],marker='o')
+m=6
+plt.yticks(range(1, m+4), [str(x+1)+'st crop' for x in range(m)])
+plt.xticks(range(1, 14), months_)
+plt.axis([0, 13, 0, m+1])
+plt.ylabel('Crops')
+plt.xlabel('Months')
+plt.title('Crop Cycles')
 plt.legend()
-# plt.show()
+plt.show()
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 #------------------------------------------------ Debugging ---------------------------------------------------
 
-# Debug = True
+Debug = True
 # Fitness_value(best_month[id_month])
 # Fitness_value([1, 3, 1, 16, 13])
+
+# Best_ind, t_ind, T_p_ind, H_m_ind_i = SingleCrop([0,2,3])
+# H_m_ind.append(H_m_ind_i)
+# print("Best individual is ", Best_ind)
+# print(t_ind)
+# print("Total Profit : %s " % T_p_ind)
+# print(H_m_ind_i)
+# print(H_m_ind)
