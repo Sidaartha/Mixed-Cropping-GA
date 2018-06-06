@@ -6,12 +6,13 @@ import numpy as np
 import pandas as pd 
 import matplotlib.pyplot as plt
 import matplotlib.ticker as ticker
+from matplotlib import colors
 from matplotlib import style
 from collections import Counter
 from operator import itemgetter
 from prettytable import PrettyTable
 from deap import algorithms, base, tools, creator
-style.use('ggplot')
+style.use('seaborn')
 
 #-------------------------------------------- Reading Data ---------------------------------------------
 
@@ -43,7 +44,7 @@ months_ = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct',
 months_dict = {'January' : 1, 'February' : 2, 'March' : 3, 'April' : 4, 'May' : 5, 'June' : 6, \
 'July' : 7, 'August' : 8, 'September' : 9, 'October' : 10, 'November' : 11, 'December' : 12}
 Current_month = datetime.datetime.now().month
-Current_month = 9
+Current_month_fix = Current_month
 Current_month_str = datetime.datetime.today().strftime('%B')
 
 Debug = False
@@ -77,10 +78,12 @@ def Fitness_value(individual):
 	global profit
 	global harvest_month
 	global planting_month
+	global harvest_time
 
 	profit = []
 	harvest_month = []
 	planting_month = []
+	harvest_time = []
 	root_depth = []
 	water_req = []
 
@@ -91,6 +94,7 @@ def Fitness_value(individual):
 			for i in range(len(individual)):
 				harvest_month_itt = []
 				planting_month_itt = []
+				harvest_time_itt = []
 				Crop = individual[i]
 				for e in range(len(Type)):
 					if Type[e]==Crop:
@@ -104,17 +108,20 @@ def Fitness_value(individual):
 					profit_i = Profit[profit_id]
 					planting_month_itt=Month[profit_id - Harvest_time[type_id]]
 					harvest_month_itt=Month[profit_id]
+					harvest_time_itt=Harvest_time[profit_id]
 					# break
 				else:
 					profit_i = Profit[type_id + profit_id%12]
 					planting_month_itt=Month[type_id + profit_id%12 - Harvest_time[type_id]]
 					harvest_month_itt=Month[type_id + profit_id%12]
+					harvest_time_itt=Harvest_time[type_id + profit_id%12]
 					# break
 				profit.append(profit_i)
 				planting_month.append(planting_month_itt)
 				harvest_month.append(harvest_month_itt)
 				root_depth.append(Root_depth[type_id])
 				water_req.append(Water_req[type_id])
+				harvest_time.append(harvest_time_itt)
 		else:
 			profit=[0]
 	else:
@@ -316,9 +323,9 @@ def Evolution(m, n, CXPB, MUTPB, NGen):
 		Root_depth[val*12-1], Water_req[val*12-1], len(harvest_month[i])*Culti_cost[val*12-1], profit[i]])
 		Total_profit = Total_profit + profit[i]
 
-	return Best, t, Total_profit, harvest_month, planting_month
+	return Best, t, Total_profit, harvest_month, planting_month, harvest_time
 
-#--------------------------------------------- Single best crop ----------------------------------------------
+# -------------------------------------------- Single best crop ----------------------------------------------
 
 def SingleCrop(single_crop, c_s):
 
@@ -343,7 +350,7 @@ def SingleCrop(single_crop, c_s):
 	t_s.add_row([Crop_name[single_id], Month[Current_month-1], Month[single_id], \
 	Root_depth[single_id], Water_req[single_id], Culti_cost[single_id], Profit[single_id]])
 
-	return Type[single_id], t_s, profit_single_m, Month[single_id], months_dict[Month[Current_month-1]]
+	return Type[single_id], t_s, profit_single_m, Month[single_id], months_dict[Month[Current_month-1]], Harvest_time[single_id]
 
 # ======================================== Running Genetic Algorithm =========================================
 
@@ -357,15 +364,15 @@ while True:
 	if count_ga == 0:
 		print('\n Crop cycle : %s\n'%(count_ga +1))
 
-		Best_ind, t_ind, T_p_ind, H_m_ind, _ = Evolution(m, n, CXPB, MUTPB, NGen)
+		Best_ind, t_ind, T_p_ind, H_m_ind, _, H_t = Evolution(m, n, CXPB, MUTPB, NGen)
 		TotalProfit.append(T_p_ind)
 
-		# [visual.append([Current_month, months_dict[H_m_ind[vi]], vi+1, Best_ind[vi]]) for vi in range(len(Best_ind))]
-		# print(visual)
+		[visual.append([Current_month, Current_month+H_t[vi], vi+1, Best_ind[vi], count_ga +1]) for vi in range(len(Best_ind))]
 		
 		print("Best individual is %s, %s" % (Best_ind, Best_ind.fitness.values))
 		print(t_ind)
 		print("Total Profit : %s " % T_p_ind)
+		# print(H_t)
 		print('\n Crop cycle : %s\n'%(count_ga +2))
 	else : 
 		print('\n Crop cycle : %s\n'%(count_ga +2))
@@ -387,57 +394,95 @@ while True:
 		else:
 			Current_month = H_m_ind_val[H_cycles]+1
 
-			Best_ind, t_ind, T_p_ind, H_m_ind_i, _ = Evolution(m, n, CXPB, MUTPB, NGen)
+			Best_ind, t_ind, T_p_ind, H_m_ind_i, _, H_t = Evolution(m, n, CXPB, MUTPB, NGen)
 			[ H_m_ind.append(H_m_ind_i[ii]) for ii in range(len(H_m_ind_i)) ]
 			TotalProfit.append(T_p_ind)
 			[crops_cycle.append(Best_ind[ii]) for ii in range(len(Best_ind))]
-
-			# crop_id = []
-			# mo_ = Current_month -1
-			# for iii in range(len(visual)):
-			# 	if visual[iii][1] == mo_: crop_id.append(visual[iii][2])
-			# [visual.append([Current_month, months_dict[H_m_ind[vi]], crop_id[vi], Best_ind[vi]]) for vi in range(len(Best_ind))]
-			# print(visual)
-
 			print("Best individual is %s, %s" % (Best_ind, Best_ind.fitness.values))
 			print(t_ind)
 			print("Total Profit : %s " % T_p_ind)
 
+#----------------------------------------------------------------------------------------------------------------
+
+			crop_id = []
+			mo_ = Current_month -1
+			len_visual = len(visual)
+			if len(visual) > 6 : len_visual = len(visual) - len(visual)%6
+			for iii in range(len_visual):
+				mo_i = visual[iii][1]
+				if mo_i >= 1 and mo_i <= 12:
+					mo_i = visual[iii][1]
+				else:
+					mo_i = visual[iii][1]%12
+						
+				if mo_i == mo_: crop_id.append(visual[iii][2]); cm_iii = iii
+			[visual.append([visual[cm_iii][1]+1, visual[cm_iii][1]+1+H_t[vi], crop_id[vi], Best_ind[vi], count_ga +2]) \
+			for vi in range(len(Best_ind))]
+			# print(visual)
 	for S_cycle in range(len(crop_s)):
-		Best_ind, t_ind, T_p_ind, H_m_ind_i, cm = SingleCrop(crop_s[S_cycle], crops_cycle)
+		H_m_ind_code = []
+		[H_m_ind_code.append(months_dict[H_m_ind[c]]) for c in range(len(H_m_ind)) ]
+		if len(set([H_m_ind_val[crop_s[S_cycle]]]) & set(H_m_ind_code)) != 0 : pass
+		Best_ind, t_ind, T_p_ind, H_m_ind_i, cm, H_t = SingleCrop(crop_s[S_cycle], crops_cycle)
 		H_m_ind.append(H_m_ind_i)
 		TotalProfit.append(T_p_ind)
 		crops_cycle.append(Best_ind)
-
-		# mo_ = cm -1
-		# for iii in range(len(visual)):
-		# 	if visual[iii][1] == mo_: crop_id_s = visual[iii][2]
-		# visual.append([cm, months_dict[H_m_ind_i]+12, crop_id_s, Best_ind])
-		# print(visual)
-
 		print("Best individual is ", Best_ind)
 		print(t_ind)
 		print("Total Profit : %s " % T_p_ind)
+
+#----------------------------------------------------------------------------------------------------------------
+
+		mo_ = cm -1
+		len_visual = len(visual)
+		if len(visual) > 6 : len_visual = len(visual) - len(visual)%6
+		for iii in range(len_visual):
+			mo_i = visual[iii][1]
+			if mo_i >= 1 and mo_i <= 12:
+				mo_i = visual[iii][1]
+			else:
+				mo_i = visual[iii][1]%12
+
+			if mo_i == mo_: crop_id_s = visual[iii][2]; cm_iiii = iii
+		visual.append([visual[cm_iiii][1]+1, visual[cm_iiii][1]+1+H_t, crop_id_s, Best_ind, count_ga +2])
+		# print(visual)
+
 	print('Best individual for crop cycle-%s is : %s' %((count_ga +2), crops_cycle))
-	if count_ga == 2 : break
+
+	H_m_ind_1 = []
+	[H_m_ind_1.append(visual[-i][1]-Current_month_fix) for i in range(1, 7)]
+	H_m_ind_1=sorted(H_m_ind_1, key=int)
+	if H_m_ind_1[0] >= 12: break
+	# if count_ga == 2 : break
+
 	count_ga+=1
 
 # print(sum(TotalProfit))
 
 #----------------------------------------------- Visualisation ------------------------------------------------
 
-# for i in range(len(visual)):
-# 	plt.plot([visual[i][0], visual[i][1]], [visual[i][2], visual[i][2]], label=Crop_name[visual[i][3]*12-1])
-# 	plt.scatter(visual[i][0], visual[i][2],marker='>')
-# 	plt.scatter(visual[i][1], visual[i][2],marker='o')
-# m=6
-# plt.yticks(range(1, m+4), [str(x+1)+'st crop' for x in range(m)])
-# plt.xticks(range(1, 26), months_+months_)
-# plt.ylabel('Crops')
-# plt.xlabel('Months')
-# plt.title('Crop Cycles')
+hex_list = []
+[hex_list.append(c) for c in colors.cnames]
+
+for i in range(len(visual)):
+	plt.scatter(visual[i][0], visual[i][2],marker='>', color=hex_list[i])
+	plt.scatter(visual[i][1], visual[i][2],marker='o', color=hex_list[i])
+	plt.plot([visual[i][0], visual[i][1]], [visual[i][2], visual[i][2]], label=Crop_name[visual[i][3]*12-1], color=hex_list[i])
+	plt.annotate(Crop_name[visual[i][3]*12-1], xy=(visual[i][0], visual[i][2]), xytext=(visual[i][0], visual[i][2]+0.1), size = 8, \
+		ha='left', va='bottom', bbox=dict(boxstyle='round', edgecolor='none', fc='lightsteelblue', alpha=0.5))
+	plt.annotate('Cycle-'+str(visual[i][4]), xy=(visual[i][0], visual[i][2]), xytext=(visual[i][0], visual[i][2]-0.2), size = 8, \
+		ha='left', va='center', bbox=dict(boxstyle='round', edgecolor='none', fc='lightsteelblue', alpha=0.5))
+	# plt.annotate(visual[i][2], xy=(visual[i][0], visual[i][2]), xytext=(visual[i][0], visual[i][2]-0.2), size = 8, \
+	# 	ha='left', va='center', bbox=dict(boxstyle='round', edgecolor='none', fc='lightsteelblue', alpha=0.5))
+m=6
+plt.yticks(range(1, m+1), [str(x+1)+'st crop' for x in range(m)])
+plt.xticks(range(1, 26), months_+months_+months_)
+plt.axis([0, 26, -1, m+2])
+plt.ylabel('Crops')
+plt.xlabel('Months')
+plt.title('Crop Cycles')
 # plt.legend()
-# plt.show()
+plt.show()
 
 #------------------------------------------------ Debugging ---------------------------------------------------
 
