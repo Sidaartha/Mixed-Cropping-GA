@@ -49,19 +49,19 @@ CM_str = datetime.datetime.today().strftime('%B')
 Debug = False
 print_ = False
 
-n 	= 400
-m	= 6 		# No.of crops to decide
+N 	= 500
+M	= 6 		# No.of crops to decide
 n_i = Type[0] 	# Lower limit of no.of crops
 n_f	= Type[-1] 	# Upper limit of no.of crops / Total no.of crops
 NGen 	= 30		# Number of generations/Number of itterations			
-CXPB	= 0.7		# CXPB  is the probability with which two individuals are crossed
-MUTPB 	= 0.4		# MUTPB is the probability for mutating an individual
+CXPB	= 0.5		# CXPB  is the probability with which two individuals are crossed
+MUTPB 	= 0.3		# MUTPB is the probability for mutating an individual
 
 # Weights to cal weighted avg
-profit_wt	= 0.9
-risk_wt 	= -0.1
-root_risk_wt	= 0.5
-water_risk_wt	= 0.5
+Profit_wt	= 0.9
+Risk_wt 	= -0.1
+Root_risk_wt	= 0.5
+Water_risk_wt	= 0.5
 crops_cycle = []
 
 #----------------------------------------------- Fitness Function ----------------------------------------------
@@ -72,7 +72,7 @@ crops_cycle = []
 #						  [2] Based on root system.
 #						  [3] Based on water requirement.
 
-def Fitness_value(individual, Current_month, Previous_H_m):
+def Fitness_value(individual, Current_month, Previous_H_m, m, profit_wt, risk_wt, root_risk_wt, water_risk_wt):
 
 	global profit
 	global harvest_month
@@ -127,8 +127,6 @@ def Fitness_value(individual, Current_month, Previous_H_m):
 	else:
 		profit=[0]
 
-	# if len(set(crops_cycle) & set(individual)) != 0: profit=[0]
-
 	Profit_percent = sum(profit)/10**4
 
 	#---------------------------------------------- Estimating Risk -------------------------------------------
@@ -172,8 +170,8 @@ def Fitness_value(individual, Current_month, Previous_H_m):
 
 	list_risk.append(avg_abc_2)
 	
-	# risk = (root_risk_wt*list_risk[0] + water_risk_wt*list_risk[1])/(root_risk_wt + water_risk_wt)
-	risk = (root_risk_wt*list_risk[0] + water_risk_wt*list_risk[1])
+	risk = (root_risk_wt*list_risk[0] + water_risk_wt*list_risk[1])/(root_risk_wt + water_risk_wt)
+	# risk = (root_risk_wt*list_risk[0] + water_risk_wt*list_risk[1])
 	Risk_percent = risk
 
 	#-----------------------------------------------------------------------------------------------------------
@@ -198,22 +196,25 @@ creator.create('FitnessMax', base.Fitness, weights = (1.0, ))
 creator.create('Individual', list, fitness = creator.FitnessMax)
 
 toolbox = base.Toolbox()
-toolbox.register('attr_value', random.randint, n_i, n_f)	# generator
+toolbox.register('attr_value', random.sample, range(n_i, n_f+1), M)		# generator
+# toolbox.register('attr_value', random.randint, n_i, n_f)	# generator
 
 #------------------------------------------ Evolution operation ----------------------------------------------
 
-def Evolution(m, n, CXPB, MUTPB, NGen, Current_month, Previous_H_m):
+def Evolution(m, n, CXPB, MUTPB, NGen, Current_month, Previous_H_m, profit_wt, risk_wt, root_risk_wt, water_risk_wt):
 
 	Max_=[]
 	Avg_=[]
 	Std_=[]
 
 	# Structure initializers
-	toolbox.register('individual', tools.initRepeat, creator.Individual, toolbox.attr_value, m)	
+	# toolbox.register('individual', tools.initRepeat, creator.Individual, toolbox.attr_value, m)	
+	toolbox.register('individual', tools.initIterate, creator.Individual, toolbox.attr_value)
 	toolbox.register('population', tools.initRepeat, list, toolbox.individual)
 
 	# genetic operators required for the evolution
-	toolbox.register('evaluate', Fitness_value, Current_month = Current_month, Previous_H_m = Previous_H_m)
+	toolbox.register('evaluate', Fitness_value, Current_month = Current_month, Previous_H_m = Previous_H_m, m = m, \
+		profit_wt = profit_wt, risk_wt = risk_wt, root_risk_wt = root_risk_wt, water_risk_wt = water_risk_wt)
 	toolbox.register('mate', tools.cxTwoPoint)
 	toolbox.register('mutate', tools.mutUniformInt, low=n_i, up=n_f, indpb=0.2)
 	toolbox.register('select', tools.selTournament, tournsize=3)
@@ -311,7 +312,7 @@ def Evolution(m, n, CXPB, MUTPB, NGen, Current_month, Previous_H_m):
 	#---------------------------------------- Storing output to 't' ------------------------------------------
 
 	# To access global variables, To store output of each crop of 'Best' individual
-	Fitness_value(Best, Current_month, Previous_H_m)
+	Fitness_value(Best, Current_month, Previous_H_m, m, profit_wt, risk_wt, root_risk_wt, water_risk_wt)
 
 	# Data in table format
 	Total_profit = 0
@@ -333,7 +334,8 @@ PHM = []
 
 while True:
 	visual_i = []
-	Best_ind, t_ind, T_p_ind, H_m_ind, P_n_ind, H_t = Evolution(m, n, CXPB, MUTPB, NGen, CM, PHM)
+	Best_ind, t_ind, T_p_ind, H_m_ind, P_n_ind, H_t = \
+	Evolution(M, N, CXPB, MUTPB, NGen, CM, PHM, Profit_wt, Risk_wt, Root_risk_wt, Water_risk_wt)
 	print("Best individual is %s, %s" % (Best_ind, Best_ind.fitness.values))
 	print(t_ind)
 	print("Total Profit : %s " % T_p_ind)
@@ -371,9 +373,9 @@ for e in range(len(visual)):
 			fc='lightsteelblue', alpha=0.5))
 		i_+=1
 
-plt.yticks(range(1, m+1), [str(x+1)+'st crop' for x in range(m)])
+plt.yticks(range(1, M+1), [str(x+1)+'st crop' for x in range(M)])
 plt.xticks(range(1, 25), months_+months_+months_)
-plt.axis([0, 25, -1, m+2])
+plt.axis([0, 25, -1, M+2])
 plt.ylabel('Crops')
 plt.xlabel('Months')
 plt.title('Crop Cycles')
