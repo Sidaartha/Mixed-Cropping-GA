@@ -62,7 +62,6 @@ Profit_wt	= 0.9
 Risk_wt 	= -0.1
 Root_risk_wt	= 0.5
 Water_risk_wt	= 0.5
-crops_cycle = []
 
 #----------------------------------------------- Fitness Function ----------------------------------------------
 # Objective fun : [1] Maximize Profit
@@ -329,17 +328,23 @@ def Evolution(m, n, CXPB, MUTPB, NGen, Current_month, Previous_H_m, profit_wt, r
 # ======================================== Running Genetic Algorithm =========================================
 
 count_ga=0
+TotalProfit = []
 visual = []
 PHM = []
 
 while True:
 	visual_i = []
+
+	print('\nCrop cycle : ', count_ga+1)
+
 	Best_ind, t_ind, T_p_ind, H_m_ind, P_n_ind, H_t = \
 	Evolution(M, N, CXPB, MUTPB, NGen, CM, PHM, Profit_wt, Risk_wt, Root_risk_wt, Water_risk_wt)
-	print("Best individual is %s, %s" % (Best_ind, Best_ind.fitness.values))
+	print("Best individual is %s, Fitness is %s" % (Best_ind, Best_ind.fitness.values))
 	print(t_ind)
-	print("Total Profit : %s " % T_p_ind)
+	print("Profit from cycle-%s : %s " % (count_ga+1, T_p_ind))
+	TotalProfit.append(T_p_ind)
 
+	# appending visualisation parameters
 	if count_ga == 0 :
 		[visual_i.append([CM, CM+H_t[v], v+1, Best_ind[v], count_ga+1]) for v in range(len(Best_ind))]
 		visual.append(visual_i)
@@ -347,10 +352,16 @@ while True:
 		[visual_i.append([visual[-1][v][1]+1, visual[-1][v][1]+1+H_t[v], v+1, Best_ind[v], count_ga+1]) for v in range(len(Best_ind))]
 		visual.append(visual_i)
 
+	# appending present cycles harvest months to decide next cycles planting months
 	PHM = []
 	[PHM.append(months_dict[H_m_ind[i]]) for i in range(len(H_m_ind))]
 
-	if count_ga == 3 : break
+	# break statment, break when 1yr of harvesting complets
+	H_m_ind_1 = []
+	[H_m_ind_1.append(visual[-1][i][1]-M) for i in range(len(visual[-1]))]
+	H_m_ind_1=sorted(H_m_ind_1, key=int)
+	if H_m_ind_1[0] >= 12: print('Total Profit : ', sum(TotalProfit)); break
+
 	count_ga+=1
 
 #----------------------------------------------- Visualisation ------------------------------------------------
