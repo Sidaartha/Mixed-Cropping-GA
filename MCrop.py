@@ -1,5 +1,6 @@
 #----------------------------------------- Importing Libraries -----------------------------------------
 
+import time
 import random
 import datetime
 import numpy as np 
@@ -13,6 +14,7 @@ from operator import itemgetter
 from prettytable import PrettyTable
 from deap import algorithms, base, tools, creator
 style.use('seaborn')
+start_time = time.time()
 
 #-------------------------------------------- Reading Data ---------------------------------------------
 
@@ -49,7 +51,7 @@ CM_str = datetime.datetime.today().strftime('%B')
 Debug = False
 print_ = False
 
-N 	= 500
+N 	= 400
 M	= 6 		# No.of crops to decide
 n_i = Type[0] 	# Lower limit of no.of crops
 n_f	= Type[-1] 	# Upper limit of no.of crops / Total no.of crops
@@ -58,25 +60,28 @@ CXPB	= 0.5		# CXPB  is the probability with which two individuals are crossed
 MUTPB 	= 0.3		# MUTPB is the probability for mutating an individual
 
 # Weights to cal weighted avg
-Profit_wt	= 0.9
-Risk_wt 	= -0.1
+Profit_wt	= 0.7
+Risk_wt 	= 0.3
 Root_risk_wt	= 0.5
 Water_risk_wt	= 0.5
 
 #----------------------------------------------- Fitness Function ----------------------------------------------
 # Objective fun : [1] Maximize Profit
 #				  [2] Mininize Risk 
-# 			i.e : Max(W1*Profit -W2*Risk)
+# 			i.e : Max((W1*Profit -W2*Risk)/(W1+W2))
 # Subject to constrains : [1] Harvest time.
 #						  [2] Based on root system.
 #						  [3] Based on water requirement.
 
-def Fitness_value(individual, Current_month, Previous_H_m, m, profit_wt, risk_wt, root_risk_wt, water_risk_wt):
+def Fitness_value(individual, Current_month, Previous_H_m, Previous_R_d, Previous_W_r, m, profit_wt, risk_wt, \
+	root_risk_wt, water_risk_wt):
 
 	global profit
 	global harvest_month
 	global planting_month
 	global harvest_time
+	global root_depth
+	global water_req
 
 	profit = []
 	harvest_month = []
@@ -141,15 +146,9 @@ def Fitness_value(individual, Current_month, Previous_H_m, m, profit_wt, risk_wt
 	per_m = counts['Medium']*100/m
 	per_d = counts['Deep']*100/m
 	
-	if per_s and per_m != 0:
-		a_1 = abs(per_s - per_m)
-		list_abc_1.append(a_1)
-	if per_s and per_d != 0:
-		b_1 = abs(per_s - per_d)
-		list_abc_1.append(b_1)
-	if per_m and per_d != 0:
-		c_1 = abs(per_m - per_d)
-		list_abc_1.append(c_1)
+	if per_s and per_m != 0: a_1 = abs(per_s - per_m); list_abc_1.append(a_1)
+	if per_s and per_d != 0: b_1 = abs(per_s - per_d); list_abc_1.append(b_1)
+	if per_m and per_d != 0: c_1 = abs(per_m - per_d); list_abc_1.append(c_1)
 	if len(list_abc_1) != 0:
 		avg_abc_1 = sum(list_abc_1)/len(list_abc_1)
 	else:
@@ -169,14 +168,15 @@ def Fitness_value(individual, Current_month, Previous_H_m, m, profit_wt, risk_wt
 
 	list_risk.append(avg_abc_2)
 	
-	risk = (root_risk_wt*list_risk[0] + water_risk_wt*list_risk[1])/(root_risk_wt + water_risk_wt)
-	# risk = (root_risk_wt*list_risk[0] + water_risk_wt*list_risk[1])
-	Risk_percent = risk
+	# risk = (root_risk_wt*list_risk[0] + water_risk_wt*list_risk[1])/(root_risk_wt + water_risk_wt)
+	risk = (root_risk_wt*list_risk[0] + water_risk_wt*list_risk[1])
+	# Risk_percent = risk
+	Risk_percent = -risk
 
 	#-----------------------------------------------------------------------------------------------------------
 	
-	combined_val = (profit_wt*Profit_percent+risk_wt*Risk_percent)/(profit_wt+risk_wt)
-	# combined_val = (profit_wt*Profit_percent+risk_wt*Risk_percent)
+	# combined_val = (profit_wt*Profit_percent+risk_wt*Risk_percent)/(profit_wt+risk_wt)
+	combined_val = (profit_wt*Profit_percent+risk_wt*Risk_percent)
 	
 	if Debug == True:
 		print('-- Debugging --')
@@ -198,9 +198,10 @@ toolbox = base.Toolbox()
 toolbox.register('attr_value', random.sample, range(n_i, n_f+1), M)		# generator
 # toolbox.register('attr_value', random.randint, n_i, n_f)	# generator
 
-#------------------------------------------ Evolution operation ----------------------------------------------
+#--------------------------------------------- Evolution operation ----------------------------------------------
 
-def Evolution(m, n, CXPB, MUTPB, NGen, Current_month, Previous_H_m, profit_wt, risk_wt, root_risk_wt, water_risk_wt):
+def Evolution(m, n, CXPB, MUTPB, NGen, Current_month, Previous_H_m, Previous_R_d, Previous_W_r, profit_wt, risk_wt, \
+	root_risk_wt, water_risk_wt):
 
 	Max_=[]
 	Avg_=[]
@@ -212,8 +213,9 @@ def Evolution(m, n, CXPB, MUTPB, NGen, Current_month, Previous_H_m, profit_wt, r
 	toolbox.register('population', tools.initRepeat, list, toolbox.individual)
 
 	# genetic operators required for the evolution
-	toolbox.register('evaluate', Fitness_value, Current_month = Current_month, Previous_H_m = Previous_H_m, m = m, \
-		profit_wt = profit_wt, risk_wt = risk_wt, root_risk_wt = root_risk_wt, water_risk_wt = water_risk_wt)
+	toolbox.register('evaluate', Fitness_value, Current_month = Current_month, Previous_H_m = Previous_H_m, \
+		Previous_R_d = Previous_R_d, Previous_W_r = Previous_W_r, m = m, profit_wt = profit_wt, risk_wt = risk_wt, \
+		root_risk_wt = root_risk_wt, water_risk_wt = water_risk_wt)
 	toolbox.register('mate', tools.cxTwoPoint)
 	toolbox.register('mutate', tools.mutUniformInt, low=n_i, up=n_f, indpb=0.2)
 	toolbox.register('select', tools.selTournament, tournsize=3)
@@ -311,7 +313,7 @@ def Evolution(m, n, CXPB, MUTPB, NGen, Current_month, Previous_H_m, profit_wt, r
 	#---------------------------------------- Storing output to 't' ------------------------------------------
 
 	# To access global variables, To store output of each crop of 'Best' individual
-	Fitness_value(Best, Current_month, Previous_H_m, m, profit_wt, risk_wt, root_risk_wt, water_risk_wt)
+	Fitness_value(Best, Current_month, Previous_H_m, Previous_R_d, Previous_W_r, m, profit_wt, risk_wt, root_risk_wt, water_risk_wt)
 
 	# Data in table format
 	Total_profit = 0
@@ -323,7 +325,7 @@ def Evolution(m, n, CXPB, MUTPB, NGen, Current_month, Previous_H_m, profit_wt, r
 		Root_depth[val*12-1], Water_req[val*12-1], len(harvest_month[i])*Culti_cost[val*12-1], profit[i]])
 		Total_profit = Total_profit + profit[i]
 
-	return Best, t, Total_profit, harvest_month, planting_month, harvest_time
+	return Best, t, Total_profit, harvest_month, planting_month, harvest_time, root_depth, water_req
 
 # ======================================== Running Genetic Algorithm =========================================
 
@@ -331,14 +333,16 @@ count_ga=0
 TotalProfit = []
 visual = []
 PHM = []
+PRD = []
+PWR = []
 
 while True:
 	visual_i = []
 
 	print('\nCrop cycle : ', count_ga+1)
 
-	Best_ind, t_ind, T_p_ind, H_m_ind, P_n_ind, H_t = \
-	Evolution(M, N, CXPB, MUTPB, NGen, CM, PHM, Profit_wt, Risk_wt, Root_risk_wt, Water_risk_wt)
+	Best_ind, t_ind, T_p_ind, H_m_ind, P_n_ind, H_t, R_d, W_r = \
+	Evolution(M, N, CXPB, MUTPB, NGen, CM, PHM, PRD, PWR, Profit_wt, Risk_wt, Root_risk_wt, Water_risk_wt)
 	print("Best individual is %s, Fitness is %s" % (Best_ind, Best_ind.fitness.values))
 	print(t_ind)
 	print("Profit from cycle-%s : %s " % (count_ga+1, T_p_ind))
@@ -346,15 +350,18 @@ while True:
 
 	# appending visualisation parameters
 	if count_ga == 0 :
-		[visual_i.append([CM, CM+H_t[v], v+1, Best_ind[v], count_ga+1]) for v in range(len(Best_ind))]
+		[visual_i.append([CM, CM+H_t[v], v+1, Best_ind[v], count_ga+1, R_d[v], W_r[v]]) for v in range(len(Best_ind))]
 		visual.append(visual_i)
 	else:
-		[visual_i.append([visual[-1][v][1]+1, visual[-1][v][1]+1+H_t[v], v+1, Best_ind[v], count_ga+1]) for v in range(len(Best_ind))]
+		[visual_i.append([visual[-1][v][1]+1, visual[-1][v][1]+1+H_t[v], v+1, Best_ind[v], count_ga+1, R_d[v], W_r[v]]) \
+		for v in range(len(Best_ind))]
 		visual.append(visual_i)
 
 	# appending present cycles harvest months to decide next cycles planting months
 	PHM = []
-	[PHM.append(months_dict[H_m_ind[i]]) for i in range(len(H_m_ind))]
+	PRD = []
+	PWR = []
+	for i in range(len(H_m_ind)): PHM.append(months_dict[H_m_ind[i]]); PRD.append(R_d); PWR.append(W_r)
 
 	# break statment, break when 1yr of harvesting complets
 	H_m_ind_1 = []
@@ -363,6 +370,8 @@ while True:
 	if H_m_ind_1[0] >= 12: print('Total Profit : ', sum(TotalProfit)); break
 
 	count_ga+=1
+
+print('Time to ex : %ssec' %(time.time()-start_time))
 
 #----------------------------------------------- Visualisation ------------------------------------------------
 
@@ -379,9 +388,9 @@ for e in range(len(visual)):
 		plt.annotate(Crop_name[visual[e][i][3]*12-1], xy=(visual[e][i][0], visual[e][i][2]), xytext=(visual[e][i][0], \
 			visual[e][i][2]+0.1), size = 8, ha='left', va='bottom', bbox=dict(boxstyle='round', edgecolor='none', \
 			fc='lightsteelblue', alpha=0.5))
-		plt.annotate('Cycle-'+str(visual[e][i][4]), xy=(visual[e][i][0], visual[e][i][2]), xytext=(visual[e][i][0], \
-			visual[e][i][2]-0.2), size = 8, ha='left', va='center', bbox=dict(boxstyle='round', edgecolor='none', \
-			fc='lightsteelblue', alpha=0.5))
+		plt.annotate('Cycle-'+str(visual[e][i][4])+str(', ')+str(visual[e][i][5][0])+str(', ')+str(visual[e][i][6]), \
+			xy=(visual[e][i][0], visual[e][i][2]), xytext=(visual[e][i][0], visual[e][i][2]-0.2), size = 6, ha='left', \
+			va='center', bbox=dict(boxstyle='round', edgecolor='none', fc='lightsteelblue', alpha=0.5), style='italic')
 		i_+=1
 
 plt.yticks(range(1, M+1), [str(x+1)+'st crop' for x in range(M)])
