@@ -51,7 +51,7 @@ CM_str = datetime.datetime.today().strftime('%B')
 Debug = False
 print_ = False
 
-N 	= 400
+N 	= 500
 M	= 6 		# No.of crops to decide
 n_i = Type[0] 	# Lower limit of no.of crops
 n_f	= Type[-1] 	# Upper limit of no.of crops / Total no.of crops
@@ -227,8 +227,8 @@ def Fitness_value(individual, Current_month, Previous_H_m, Previous_R_d, Previou
 	if Debug == True:
 		print('-- Debugging --')
 		print(root_add_all)
-		print('Profit_val 	: %s \nRisk_val 	: %s \nCombined_val 	: %s \nRisk_root 	: %s \nRisk_water 	: %s'\
-		 %(Profit_percent, Risk_percent, combined_val, avg_abc_1, avg_abc_2) )
+		print('Profit_val 	: %s \nRisk_val 	: %s \nCombined_val 	: %s \nRisk_root 	: %s \nRisk_water 	: %s \
+			\nRisk_list 	: %s' %(Profit_percent, Risk_percent, combined_val, avg_abc_1, avg_abc_2, list_risk) )
 	else: pass
 
 	# return sum(profit), risk
@@ -437,7 +437,7 @@ for e in range(len(visual)):
 		plt.annotate(Crop_name[visual[e][i][3]*12-1], xy=(visual[e][i][0], visual[e][i][2]), xytext=(visual[e][i][0], \
 			visual[e][i][2]+0.1), size = 8, ha='left', va='bottom', bbox=dict(boxstyle='round', edgecolor='none', \
 			fc='lightsteelblue', alpha=0.5))
-		plt.annotate('Cycle-'+str(visual[e][i][4])+str(', ')+str(visual[e][i][5][0])+str(', ')+str(visual[e][i][6]), \
+		plt.annotate('Cycle-'+str(visual[e][i][4])+str(', ')+str(visual[e][i][5]), \
 			xy=(visual[e][i][0], visual[e][i][2]), xytext=(visual[e][i][0], visual[e][i][2]-0.2), size = 6, ha='left', \
 			va='center', bbox=dict(boxstyle='round', edgecolor='none', fc='lightsteelblue', alpha=0.5), style='italic')
 		i_+=1
@@ -449,4 +449,4 @@ plt.ylabel('Crops')
 plt.xlabel('Months')
 plt.title('Crop Cycles')
 # plt.legend()
-# plt.show()
+plt.show()
