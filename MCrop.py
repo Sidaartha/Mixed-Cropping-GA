@@ -74,7 +74,7 @@ Water_risk_wt	= 0.5
 #						  [3] Based on water requirement.
 
 def Fitness_value(individual, Current_month, Previous_H_m, Previous_R_d, Previous_W_r, m, profit_wt, risk_wt, \
-	root_risk_wt, water_risk_wt):
+	root_risk_wt, water_risk_wt, AllinOne, Debug):
 
 	global profit
 	global harvest_month
@@ -140,20 +140,65 @@ def Fitness_value(individual, Current_month, Previous_H_m, Previous_R_d, Previou
 	# Risk due to competition over nitrogen from the soil
 	# lower limit = 0
 	# upper limit = 100
-	list_abc_1=[]
-	counts = Counter(root_depth)
-	per_s = counts['Shallow']*100/m
-	per_m = counts['Medium']*100/m
-	per_d = counts['Deep']*100/m
-	
-	if per_s and per_m != 0: a_1 = abs(per_s - per_m); list_abc_1.append(a_1)
-	if per_s and per_d != 0: b_1 = abs(per_s - per_d); list_abc_1.append(b_1)
-	if per_m and per_d != 0: c_1 = abs(per_m - per_d); list_abc_1.append(c_1)
-	if len(list_abc_1) != 0:
-		avg_abc_1 = sum(list_abc_1)/len(list_abc_1)
-	else:
-		avg_abc_1 = 100
-	list_risk.append(avg_abc_1)
+	avg_abc_1 = []
+	def Risk_root(Root_d):
+		if len(Root_d) != 0:
+			list_abc_1=[]
+			counts = Counter(Root_d)
+			per_s = counts['Shallow']*100/m
+			per_m = counts['Medium']*100/m
+			per_d = counts['Deep']*100/m
+			
+			if per_s and per_m != 0: a_1 = abs(per_s - per_m); list_abc_1.append(a_1)
+			if per_s and per_d != 0: b_1 = abs(per_s - per_d); list_abc_1.append(b_1)
+			if per_m and per_d != 0: c_1 = abs(per_m - per_d); list_abc_1.append(c_1)
+			if len(list_abc_1) != 0: avg_abc_1f = sum(list_abc_1)/len(list_abc_1)
+			else: avg_abc_1f = 100
+		else : avg_abc_1f = 100
+		return avg_abc_1f
+
+	avg_abc_1.append(Risk_root(root_depth))
+
+	root_add_all = []
+	if len(Previous_H_m) !=0 :
+		planting_m_com = []
+		for i in range(len(AllinOne)): planting_m_com.append(AllinOne[i][1]+1)
+		planting_month_val = []
+		for i in range(len(planting_month)): planting_month_val.append([months_dict[planting_month[i]], i])
+		planting_month_val = sorted(planting_month_val)
+		Previous_H_m_sort = sorted(Previous_H_m)
+		planting_month_val_i = []
+		for i in range(len(planting_month_val)): planting_month_val_i.append(planting_month_val[i][0])
+		planting_month_count = Counter(planting_month_val_i, )
+		# planting_month_set = list(set(np.array(planting_month_val)[:,0]))
+		planting_month_set = list(planting_month_count)
+
+		com_count = 0
+		for i in range(len(planting_month_set)):
+			root_add = []
+			for e in range(planting_month_count.get(planting_month_set[i])):
+				PM_verify = planting_month_val[com_count][1]
+				root_add.append(root_depth[PM_verify])
+				com_count+=1
+			len_verify = len(root_add)
+			for f in range(m):
+				if AllinOne[f][1] >= planting_m_com[PM_verify]: root_add.append(AllinOne[f][5])
+			if len(root_add) > len_verify: root_add_all.append(root_add)
+
+		for i in range(len(root_add_all)):
+			avg_abc_1.append(Risk_root(root_add_all[i]))
+
+		previous_root = []
+		for i in range(len(root_depth)): 
+			if root_depth[i] != AllinOne[i][5]: previous_root.append(0)
+			else : previous_root.append(100)
+		if len(root_depth) != 0 : previous_root_avg = sum(previous_root)#/len(previous_root)
+		else : previous_root_avg = 100*m
+		avg_abc_1.append(previous_root_avg)
+
+	else: pass
+
+	list_risk.append(sum(avg_abc_1)/len(avg_abc_1))
 
 	# Risk due to competition over water requirement
 	# lower limit = m*20
@@ -165,6 +210,7 @@ def Fitness_value(individual, Current_month, Previous_H_m, Previous_R_d, Previou
 	per_H = counts_water['H']
 	
 	avg_abc_2 = 20*per_L + 30*per_M + 50*per_H
+	# avg_abc_2 = 10*per_L + 20*per_M + 30*per_H
 
 	list_risk.append(avg_abc_2)
 	
@@ -177,13 +223,13 @@ def Fitness_value(individual, Current_month, Previous_H_m, Previous_R_d, Previou
 	
 	# combined_val = (profit_wt*Profit_percent+risk_wt*Risk_percent)/(profit_wt+risk_wt)
 	combined_val = (profit_wt*Profit_percent+risk_wt*Risk_percent)
-	
+	# Debug = True
 	if Debug == True:
 		print('-- Debugging --')
-		print('Profit_val 	: %s \nRisk_val 	: %s \nCombined_val 	: %s \nRisk_root 	: %s \nRisk_water 	: %s' \
-			%(Profit_percent, Risk_percent, combined_val, avg_abc_1, avg_abc_2) )
-	else:
-		pass
+		print(root_add_all)
+		print('Profit_val 	: %s \nRisk_val 	: %s \nCombined_val 	: %s \nRisk_root 	: %s \nRisk_water 	: %s'\
+		 %(Profit_percent, Risk_percent, combined_val, avg_abc_1, avg_abc_2) )
+	else: pass
 
 	# return sum(profit), risk
 	return combined_val, 
@@ -201,11 +247,12 @@ toolbox.register('attr_value', random.sample, range(n_i, n_f+1), M)		# generator
 #--------------------------------------------- Evolution operation ----------------------------------------------
 
 def Evolution(m, n, CXPB, MUTPB, NGen, Current_month, Previous_H_m, Previous_R_d, Previous_W_r, profit_wt, risk_wt, \
-	root_risk_wt, water_risk_wt):
+	root_risk_wt, water_risk_wt, AllinOne):
 
 	Max_=[]
 	Avg_=[]
 	Std_=[]
+	Debug = False
 
 	# Structure initializers
 	# toolbox.register('individual', tools.initRepeat, creator.Individual, toolbox.attr_value, m)	
@@ -215,7 +262,7 @@ def Evolution(m, n, CXPB, MUTPB, NGen, Current_month, Previous_H_m, Previous_R_d
 	# genetic operators required for the evolution
 	toolbox.register('evaluate', Fitness_value, Current_month = Current_month, Previous_H_m = Previous_H_m, \
 		Previous_R_d = Previous_R_d, Previous_W_r = Previous_W_r, m = m, profit_wt = profit_wt, risk_wt = risk_wt, \
-		root_risk_wt = root_risk_wt, water_risk_wt = water_risk_wt)
+		root_risk_wt = root_risk_wt, water_risk_wt = water_risk_wt, AllinOne = AllinOne, Debug = Debug)
 	toolbox.register('mate', tools.cxTwoPoint)
 	toolbox.register('mutate', tools.mutUniformInt, low=n_i, up=n_f, indpb=0.2)
 	toolbox.register('select', tools.selTournament, tournsize=3)
@@ -313,7 +360,9 @@ def Evolution(m, n, CXPB, MUTPB, NGen, Current_month, Previous_H_m, Previous_R_d
 	#---------------------------------------- Storing output to 't' ------------------------------------------
 
 	# To access global variables, To store output of each crop of 'Best' individual
-	Fitness_value(Best, Current_month, Previous_H_m, Previous_R_d, Previous_W_r, m, profit_wt, risk_wt, root_risk_wt, water_risk_wt)
+	# Debug = True
+	Fitness_value(Best, Current_month, Previous_H_m, Previous_R_d, Previous_W_r, m, profit_wt, risk_wt, \
+		root_risk_wt, water_risk_wt, AllinOne, Debug)
 
 	# Data in table format
 	Total_profit = 0
@@ -332,17 +381,17 @@ def Evolution(m, n, CXPB, MUTPB, NGen, Current_month, Previous_H_m, Previous_R_d
 count_ga=0
 TotalProfit = []
 visual = []
+allinone = []
 PHM = []
 PRD = []
 PWR = []
 
 while True:
 	visual_i = []
-
+	if len(visual) != 0 : allinone = visual[-1]
 	print('\nCrop cycle : ', count_ga+1)
-
 	Best_ind, t_ind, T_p_ind, H_m_ind, P_n_ind, H_t, R_d, W_r = \
-	Evolution(M, N, CXPB, MUTPB, NGen, CM, PHM, PRD, PWR, Profit_wt, Risk_wt, Root_risk_wt, Water_risk_wt)
+	Evolution(M, N, CXPB, MUTPB, NGen, CM, PHM, PRD, PWR, Profit_wt, Risk_wt, Root_risk_wt, Water_risk_wt, allinone)
 	print("Best individual is %s, Fitness is %s" % (Best_ind, Best_ind.fitness.values))
 	print(t_ind)
 	print("Profit from cycle-%s : %s " % (count_ga+1, T_p_ind))
@@ -400,18 +449,4 @@ plt.ylabel('Crops')
 plt.xlabel('Months')
 plt.title('Crop Cycles')
 # plt.legend()
-plt.show()
-
-#------------------------------------------------ Debugging ---------------------------------------------------
-
-# Debug = True
-# Fitness_value(best_month[id_month])
-# Fitness_value([1, 3, 1, 16, 13])
-
-# Best_ind, t_ind, T_p_ind, H_m_ind_i = SingleCrop([0,2,3])
-# H_m_ind.append(H_m_ind_i)
-# print("Best individual is ", Best_ind)
-# print(t_ind)
-# print("Total Profit : %s " % T_p_ind)
-# print(H_m_ind_i)
-# print(H_m_ind)
+# plt.show()
