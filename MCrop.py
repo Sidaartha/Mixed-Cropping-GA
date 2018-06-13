@@ -7,8 +7,7 @@ import numpy as np
 import pandas as pd 
 import matplotlib.pyplot as plt
 import matplotlib.ticker as ticker
-from matplotlib import colors
-from matplotlib import style
+from matplotlib import colors, style
 from collections import Counter
 from operator import itemgetter
 from prettytable import PrettyTable
@@ -55,15 +54,15 @@ N 	= 500
 M	= 6 		# No.of crops to decide
 n_i = Type[0] 	# Lower limit of no.of crops
 n_f	= Type[-1] 	# Upper limit of no.of crops / Total no.of crops
-NGen 	= 30		# Number of generations/Number of itterations			
-CXPB	= 0.5		# CXPB  is the probability with which two individuals are crossed
-MUTPB 	= 0.3		# MUTPB is the probability for mutating an individual
+NGen 	= 25		# Number of generations/Number of itterations			
+CXPB	= 0.7		# CXPB  is the probability with which two individuals are crossed
+MUTPB 	= 0.2		# MUTPB is the probability for mutating an individual
 
 # Weights to cal weighted avg
 Profit_wt	= 0.7
 Risk_wt 	= 0.3
-Root_risk_wt	= 0.5
-Water_risk_wt	= 0.5
+Root_risk_wt	= 1
+Water_risk_wt	= 0
 
 #----------------------------------------------- Fitness Function ----------------------------------------------
 # Objective fun : [1] Maximize Profit
@@ -192,7 +191,7 @@ def Fitness_value(individual, Current_month, Previous_H_m, Previous_R_d, Previou
 		for i in range(len(root_depth)): 
 			if root_depth[i] != AllinOne[i][5]: previous_root.append(0)
 			else : previous_root.append(100)
-		if len(root_depth) != 0 : previous_root_avg = sum(previous_root)#/len(previous_root)
+		if len(root_depth) != 0 : previous_root_avg = sum(previous_root)/len(previous_root)
 		else : previous_root_avg = 100*m
 		avg_abc_1.append(previous_root_avg)
 
@@ -222,7 +221,8 @@ def Fitness_value(individual, Current_month, Previous_H_m, Previous_R_d, Previou
 	#-----------------------------------------------------------------------------------------------------------
 	
 	# combined_val = (profit_wt*Profit_percent+risk_wt*Risk_percent)/(profit_wt+risk_wt)
-	combined_val = (profit_wt*Profit_percent+risk_wt*Risk_percent)
+	# combined_val = (profit_wt*Profit_percent+risk_wt*Risk_percent)
+	combined_val = (profit_wt*Profit_percent+risk_wt*Risk_percent)*10**2
 	# Debug = True
 	if Debug == True:
 		print('-- Debugging --')
