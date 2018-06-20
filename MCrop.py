@@ -32,6 +32,8 @@ Root_depth 	= df['Root_Depth']
 Root_depth 	= np.array(Root_depth)
 Water_req 	= df['Water_Req']
 Water_req 	= np.array(Water_req)
+Price 	= df['RB_Rate_kg']
+Price 	= np.array(Price)
 Profit 	= df['Profit']
 Profit 	= np.array(Profit)
 Month 	= df['Month']
@@ -61,8 +63,9 @@ MUTPB 	= 0.2		# MUTPB is the probability for mutating an individual
 # Weights to cal weighted avg
 Profit_wt	= 0.7
 Risk_wt 	= 0.3
-Root_risk_wt	= 1
+Root_risk_wt	= 0.5
 Water_risk_wt	= 0
+volatile_wt		= 0.5
 
 #----------------------------------------------- Fitness Function ----------------------------------------------
 # Objective fun : [1] Maximize Profit
@@ -212,9 +215,21 @@ def Fitness_value(individual, Current_month, Previous_H_m, Previous_R_d, Previou
 	# avg_abc_2 = 10*per_L + 20*per_M + 30*per_H
 
 	list_risk.append(avg_abc_2)
+
+	# Risk due to market volatility
+	list_abc_3 = []
+	for i in range(len(individual)):
+		price_id = (individual[i]-1)*12
+		volatility_val = np.std(Price[price_id : price_id+12])*np.sqrt(12)
+		list_abc_3.append(volatility_val)
+
+	avg_abc_3 = sum(list_abc_3)/len(list_abc_3)
+
+	list_risk.append(avg_abc_3)
 	
 	# risk = (root_risk_wt*list_risk[0] + water_risk_wt*list_risk[1])/(root_risk_wt + water_risk_wt)
-	risk = (root_risk_wt*list_risk[0] + water_risk_wt*list_risk[1])
+	# risk = (root_risk_wt*list_risk[0] + water_risk_wt*list_risk[1])
+	risk = (root_risk_wt*list_risk[0] + water_risk_wt*list_risk[1] + volatile_wt*list_risk[2])
 	# Risk_percent = risk
 	Risk_percent = -risk
 
@@ -228,7 +243,8 @@ def Fitness_value(individual, Current_month, Previous_H_m, Previous_R_d, Previou
 		print('-- Debugging --')
 		print(root_add_all)
 		print('Profit_val 	: %s \nRisk_val 	: %s \nCombined_val 	: %s \nRisk_root 	: %s \nRisk_water 	: %s \
-			\nRisk_list 	: %s' %(Profit_percent, Risk_percent, combined_val, avg_abc_1, avg_abc_2, list_risk) )
+			\nVolatility 	: %s \nRisk_list 	: %s' %(Profit_percent, Risk_percent, combined_val, avg_abc_1, avg_abc_2, \
+				list_abc_3, list_risk) )
 	else: pass
 
 	# return sum(profit), risk
@@ -360,7 +376,7 @@ def Evolution(m, n, CXPB, MUTPB, NGen, Current_month, Previous_H_m, Previous_R_d
 	#---------------------------------------- Storing output to 't' ------------------------------------------
 
 	# To access global variables, To store output of each crop of 'Best' individual
-	# Debug = True
+	Debug = True
 	Fitness_value(Best, Current_month, Previous_H_m, Previous_R_d, Previous_W_r, m, profit_wt, risk_wt, \
 		root_risk_wt, water_risk_wt, AllinOne, Debug)
 
