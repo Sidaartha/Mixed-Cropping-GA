@@ -185,32 +185,6 @@ def Fitness_value(individual, Current_month, m, c, profit_wt, risk_wt, root_risk
 		# previous_root.append(sum(previous_root_itt))
 	avg_abc_1.append(sum(previous_root)/len(previous_root))
 
-	# # Risk in the same cycle
-	# RR_same_cycle = []
-	# for i in range(c): RR_same_cycle.append(Risk_root(AllinOne[i][5]))
-	# avg_abc_1.append(sum(RR_same_cycle)/len(RR_same_cycle))
-
-	# # Risk at an instant with mix of crops in two cycles
-	# instant_root = []
-	# for i in range(c-1):
-	# 	root_risk_cyc = []
-	# 	root_depth_cyc = []
-	# 	max_hm = max(AllinOne[i][7])
-	# 	min_hm = min(AllinOne[i][7])
-	# 	if (max_hm - min_hm) != 0 :
-	# 		for e in range(max_hm - min_hm):
-	# 			hm_verify = max_hm - e
-	# 			root_depth_bwc = []
-	# 			for j in range(m):
-	# 				if AllinOne[i+1][7][j] <= hm_verify : root_depth_bwc.append(AllinOne[i+1][5][j])
-	# 				else : root_depth_bwc.append(AllinOne[i][5][j])
-	# 			root_depth_cyc.append(root_depth_bwc)
-	# 		for f in range(len(root_depth_cyc)):
-	# 			root_risk_cyc.append(Risk_root(root_depth_cyc[f]))
-	# 		instant_root.append(sum(root_risk_cyc)/len(root_risk_cyc))
-	# 	else : instant_root.append(0)
-	# avg_abc_1.append(sum(instant_root)/len(instant_root))
-
 	list_risk.append(sum(avg_abc_1)/len(avg_abc_1))
 
 	# Risk due to competition over water requirement
@@ -314,6 +288,7 @@ def NdmutUniformInt(individual, m, c, low, up, indpb):
 				mutate_sample.remove(individual[i][e])
 				mutate_sample.append(ind_i_e)
 	# if sum([len(set(i)) for i in individual]) != m*c : print(individual)		# Check for duplicates after Mut
+	
 	return individual,
 
 # ------------------------------------------------ Creating class -----------------------------------------------
