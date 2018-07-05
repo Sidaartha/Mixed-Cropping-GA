@@ -51,7 +51,7 @@ CM_str = datetime.datetime.today().strftime('%B')
 Debug = False
 print_ = False
 
-N 	= 500
+N 	= 300
 M	= 6 		# No.of crops to decide
 n_i = Type[0] 	# Lower limit of no.of crops
 n_f	= Type[-1] 	# Upper limit of no.of crops / Total no.of crops
