@@ -7,13 +7,12 @@ import numpy as np
 import pandas as pd 
 import matplotlib.pyplot as plt
 import matplotlib.ticker as ticker
+from operator import add
 from itertools import repeat
-from collections import Sequence
+from collections import Counter
 from prettytable import PrettyTable
 from matplotlib import colors, style
-from operator import itemgetter, add
-from collections import Counter, Sequence
-from deap import algorithms, base, tools, creator
+from deap import base, tools, creator
 style.use('seaborn')
 start_time = time.time()
 
@@ -160,10 +159,20 @@ def Fitness_value(individual, Current_month, m, c, profit_wt, risk_wt, root_risk
 
 	avg_abc_1 = []
 
-	# Risk in the same cycle
-	RR_same_cycle = []
-	for i in range(c): RR_same_cycle.append(Risk_root(AllinOne[i][5]))
-	avg_abc_1.append(sum(RR_same_cycle)/len(RR_same_cycle))
+	# Risk at each month
+	RR_instant = []
+	for i in range(max(AllinOne[-1][7])-Current_month+1):
+		root_sys_instant = []
+		for e in range(m):
+			for j in range(c):
+				if Current_month+i <= AllinOne[j][7][e] :
+					root_sys_instant.append(AllinOne[j][5][e])
+					break
+				elif j == c-1 : 
+					root_sys_instant.append("Dummy"+str(e))
+		RR_instant.append(Risk_root(root_sys_instant))
+
+	avg_abc_1.append(sum(RR_instant)/len(RR_instant))
 
 	# Risk in same line b/w crops of diff cycles
 	previous_root = []
@@ -176,26 +185,31 @@ def Fitness_value(individual, Current_month, m, c, profit_wt, risk_wt, root_risk
 		# previous_root.append(sum(previous_root_itt))
 	avg_abc_1.append(sum(previous_root)/len(previous_root))
 
-	# Risk at an instant with mix of crops in two cycles
-	instant_root = []
-	for i in range(c-1):
-		root_risk_cyc = []
-		root_depth_cyc = []
-		max_hm = max(AllinOne[i][7])
-		min_hm = min(AllinOne[i][7])
-		if (max_hm - min_hm) != 0 :
-			for e in range(max_hm - min_hm):
-				hm_verify = max_hm - e
-				root_depth_bwc = []
-				for j in range(m):
-					if AllinOne[i+1][7][j] <= hm_verify : root_depth_bwc.append(AllinOne[i+1][5][j])
-					else : root_depth_bwc.append(AllinOne[i][5][j])
-				root_depth_cyc.append(root_depth_bwc)
-			for f in range(len(root_depth_cyc)):
-				root_risk_cyc.append(Risk_root(root_depth_cyc[f]))
-			instant_root.append(sum(root_risk_cyc)/len(root_risk_cyc))
-		else : instant_root.append(0)
-	avg_abc_1.append(sum(instant_root)/len(instant_root))
+	# # Risk in the same cycle
+	# RR_same_cycle = []
+	# for i in range(c): RR_same_cycle.append(Risk_root(AllinOne[i][5]))
+	# avg_abc_1.append(sum(RR_same_cycle)/len(RR_same_cycle))
+
+	# # Risk at an instant with mix of crops in two cycles
+	# instant_root = []
+	# for i in range(c-1):
+	# 	root_risk_cyc = []
+	# 	root_depth_cyc = []
+	# 	max_hm = max(AllinOne[i][7])
+	# 	min_hm = min(AllinOne[i][7])
+	# 	if (max_hm - min_hm) != 0 :
+	# 		for e in range(max_hm - min_hm):
+	# 			hm_verify = max_hm - e
+	# 			root_depth_bwc = []
+	# 			for j in range(m):
+	# 				if AllinOne[i+1][7][j] <= hm_verify : root_depth_bwc.append(AllinOne[i+1][5][j])
+	# 				else : root_depth_bwc.append(AllinOne[i][5][j])
+	# 			root_depth_cyc.append(root_depth_bwc)
+	# 		for f in range(len(root_depth_cyc)):
+	# 			root_risk_cyc.append(Risk_root(root_depth_cyc[f]))
+	# 		instant_root.append(sum(root_risk_cyc)/len(root_risk_cyc))
+	# 	else : instant_root.append(0)
+	# avg_abc_1.append(sum(instant_root)/len(instant_root))
 
 	list_risk.append(sum(avg_abc_1)/len(avg_abc_1))
 
@@ -324,7 +338,7 @@ toolbox.register('select', tools.selTournament, tournsize=30)
 
 # --------------------------------------------- Evolution operation ----------------------------------------------
 
-def Evolution(m, n, CXPB, MUTPB, NGen, print_):
+def Evolution(m, c, n, CXPB, MUTPB, NGen, print_):
 
 	Max_=[]
 	Avg_=[]
@@ -406,10 +420,6 @@ def Evolution(m, n, CXPB, MUTPB, NGen, print_):
 
 	Best = tools.selBest(pop, 1)[0]	
 
-	# Debuging the best individual and Accessing global variable
-	debug_best = True
-	Fitness_value(Best, CM, M, C, Profit_wt, Risk_wt, Root_risk_wt, Water_risk_wt, Volatile_wt, debug_best)
-
 	# ---------------------------------------------- Visualisation --------------------------------------------
 	# Stats of each generation
 
@@ -425,13 +435,29 @@ def Evolution(m, n, CXPB, MUTPB, NGen, print_):
 	plt.legend()
 	plt.show()
 
-	return Best, Best.fitness.values[0]
+	# ---------------------------------------------- Tabular Output --------------------------------------------
+	
+	# Debuging the best individual and Accessing global variable
+	debug_best = True
+	Fitness_value(Best, CM, M, C, Profit_wt, Risk_wt, Root_risk_wt, Water_risk_wt, Volatile_wt, debug_best)
+
+	t = PrettyTable(['Cycles', 'Crop', 'Planting Month', 'Harvest Month', 'Root Sys', 'Water Req', 'Profit'])
+
+	for i in range(c):
+		for e in range(m):
+			t.add_row([i+1, Crop_name[AllinOne[i][0][e]*12-1], AllinOne[i][1][e], AllinOne[i][2][e], AllinOne[i][5][e], \
+				AllinOne[i][6][e], AllinOne[i][4][e]])
+		t.add_row(['-'*13]*7)
+	t.add_row(['Total : ', '-', '-', '-', '-', '-', sum(list(map(lambda x : sum(AllinOne[x][4]), list(range(0,c)))))])
+
+	return Best, Best.fitness.values[0], t
 
 # ========================================= Running Genetic Algorithm ==========================================
 
-Best_ind, Best_fitness = Evolution(M, N, CXPB, MUTPB, NGen, Print_)
+Best_ind, Best_fitness, T = Evolution(M, C, N, CXPB, MUTPB, NGen, Print_)
 print(Best_ind)
 print(Best_fitness)
+print(T)
 
 print('Time to ex : %ssec' %(time.time()-start_time))
 
