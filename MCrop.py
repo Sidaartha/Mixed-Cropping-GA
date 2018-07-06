@@ -61,17 +61,17 @@ C 	= 4			# No.of crops cycles
 M	= 5 		# No.of crops to decide
 n_i = Type[0] 	# Lower limit of no.of crops
 n_f	= Type[-1] 	# Upper limit of no.of crops / Total no.of crops
-NGen 	= 30	# Number of generations/Number of itterations			
+NGen 	= 60	# Number of generations/Number of itterations			
 CXPB	= 0.7	# CXPB  is the probability with which two individuals are crossed
-MUTPB 	= 0.5	# MUTPB is the probability for mutating an individual
-INDPB 	= 0.4	# INDPB is the probability for mutating each gen of an individual
+MUTPB 	= 0.4	# MUTPB is the probability for mutating an individual
+INDPB 	= 0.2	# INDPB is the probability for mutating each gen of an individual
 
 # Weights to cal weighted avg
 Profit_wt	= 0.5
 Risk_wt 	= 0.5
-Root_risk_wt	= 0.5
+Root_risk_wt	= 0.7
 Water_risk_wt	= 0
-Volatile_wt		= 0.5
+Volatile_wt		= 0.3
 
 #----------------------------------------------- Fitness Function ----------------------------------------------
 # Objective fun : [1] Maximize Profit
@@ -151,10 +151,10 @@ def Fitness_value(individual, Current_month, m, c, profit_wt, risk_wt, root_risk
 	def Risk_root(Root_d):
 		risk_root_list = []
 		for i in range(len(Root_d)-1):
-			if Root_d[i] == Root_d[i+1] : risk_root_list.append(100)
+			if Root_d[i] == Root_d[i+1] : risk_root_list.append(1)
 			else : risk_root_list.append(0)
-		Root_risk_ind = sum(risk_root_list)/(len(risk_root_list)+1)
-		# Root_risk_ind = sum(risk_root_list)
+		# Root_risk_ind = sum(risk_root_list)/(len(risk_root_list)+1)
+		Root_risk_ind = sum(risk_root_list)
 		return Root_risk_ind
 
 	avg_abc_1 = []
@@ -172,20 +172,23 @@ def Fitness_value(individual, Current_month, m, c, profit_wt, risk_wt, root_risk
 					root_sys_instant.append("Dummy"+str(e))
 		RR_instant.append(Risk_root(root_sys_instant))
 
-	avg_abc_1.append(sum(RR_instant)/len(RR_instant))
+	# avg_abc_1.append(sum(RR_instant)/len(RR_instant))
+	avg_abc_1.append(sum(RR_instant))
 
 	# Risk in same line b/w crops of diff cycles
 	previous_root = []
 	for i in range(c-1):
 		previous_root_itt = []
 		for e in range(m):
-			if AllinOne[i][5][e] != AllinOne[i+1][5][e] : previous_root_itt.append(0)
-			else : previous_root_itt.append(100)
-		previous_root.append(sum(previous_root_itt)/len(previous_root_itt))
-		# previous_root.append(sum(previous_root_itt))
-	avg_abc_1.append(sum(previous_root)/len(previous_root))
+			if AllinOne[i][5][e] == AllinOne[i+1][5][e] : previous_root_itt.append(1)
+			else : previous_root_itt.append(0)
+		# previous_root.append(sum(previous_root_itt)/len(previous_root_itt))
+		previous_root.append(sum(previous_root_itt))
+	# avg_abc_1.append(sum(previous_root)/len(previous_root))
+	avg_abc_1.append(sum(previous_root))
 
-	list_risk.append(sum(avg_abc_1)/len(avg_abc_1))
+	# list_risk.append(sum(avg_abc_1)/len(avg_abc_1))
+	list_risk.append(sum(avg_abc_1)*100)
 
 	# Risk due to competition over water requirement
 	# lower limit = m*20
@@ -213,13 +216,14 @@ def Fitness_value(individual, Current_month, m, c, profit_wt, risk_wt, root_risk
 			list_abc_3.append(volatility_val)
 		avg_abc_3.append(sum(list_abc_3)/len(list_abc_3))
 
-	list_risk.append(sum(avg_abc_3)/len(avg_abc_3))
+	# list_risk.append(sum(avg_abc_3)/len(avg_abc_3))
+	list_risk.append(sum(avg_abc_3))
 
 	# Total risk from this combination
 	risk = ( root_risk_wt*list_risk[0] + water_risk_wt*list_risk[1] + volatile_wt*list_risk[2] )\
 	/( root_risk_wt + water_risk_wt + volatile_wt )
 
-	Risk_total = -risk*10
+	Risk_total = -risk
 
 	#-----------------------------------------------------------------------------------------------------------
 
@@ -288,7 +292,7 @@ def NdmutUniformInt(individual, m, c, low, up, indpb):
 				mutate_sample.remove(individual[i][e])
 				mutate_sample.append(ind_i_e)
 	# if sum([len(set(i)) for i in individual]) != m*c : print(individual)		# Check for duplicates after Mut
-	
+
 	return individual,
 
 # ------------------------------------------------ Creating class -----------------------------------------------
