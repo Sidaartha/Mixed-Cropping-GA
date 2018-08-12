@@ -57,11 +57,11 @@ Debug = False
 Print_ = True
 
 N 	= 3000
-C 	= 4			# No.of crops cycles
+C 	= 2			# No.of crops cycles
 M	= 5 		# No.of crops to decide
 n_i = Type[0] 	# Lower limit of no.of crops
 n_f	= Type[-1] 	# Upper limit of no.of crops / Total no.of crops
-NGen 	= 60	# Number of generations/Number of itterations			
+NGen 	= 30	# Number of generations/Number of itterations			
 CXPB	= 0.7	# CXPB  is the probability with which two individuals are crossed
 MUTPB 	= 0.4	# MUTPB is the probability for mutating an individual
 INDPB 	= 0.2	# INDPB is the probability for mutating each gen of an individual
@@ -252,32 +252,78 @@ def NdcxTwoPointX(ind1, ind2, m, c):
 	for i in range(c):
 		ind_itt1 = ind1[i]
 		ind_itt2 = ind2[i]
+		# print('----------------------------------')
+		# print(ind_itt1, ind_itt2)
 		cxpoint1 = random.randint(1, m)
 		cxpoint2 = random.randint(1, m - 1)
 		if cxpoint2 >= cxpoint1:
 			cxpoint2 += 1
 		else: 
 			cxpoint1, cxpoint2 = cxpoint2, cxpoint1		# Swap the two cx points
-		ind_itt1[cxpoint1:cxpoint2], ind_itt2[cxpoint1:cxpoint2] = \
-		ind_itt2[cxpoint1:cxpoint2], ind_itt1[cxpoint1:cxpoint2]
 
-		# Removing duplicates in child
+		# print(cxpoint1, cxpoint2)
+
 		cx1 = ind_itt1[cxpoint1:cxpoint2]
 		cx2 = ind_itt2[cxpoint1:cxpoint2]
-		cx1ncx2 = list(set(cx1).intersection(cx2))
-		cx1 = list(set(cx1).difference(cx1ncx2))
-		cx2 = list(set(cx2).difference(cx1ncx2))
-		verids = list(range(0,m))
-		del(verids[cxpoint1:cxpoint2])
-		idcx1 = 0
-		idcx2 = 0		
-		for e in verids: 
-			if ind_itt1[e] in cx1 : ind_itt1[e] = cx2[idcx1]; idcx1+=1
-			if ind_itt2[e] in cx2 : ind_itt2[e] = cx1[idcx2]; idcx2+=1
-		# if len(set(ind_itt1)) != m : print(ind_itt1)		# Check for duplicates after CX
-		# if len(set(ind_itt2)) != m : print(ind_itt2)
+
+		ind_cx1 = ind_itt1[0 : cxpoint1] + ind_itt1[cxpoint2 : m]
+		ind_cx2 = ind_itt2[0 : cxpoint1] + ind_itt2[cxpoint2 : m]
+
+		for e in range(cxpoint2 - cxpoint1):
+			for i in range(cxpoint2 - cxpoint1):
+				if cx2[i] not in ind_itt1 :
+					ind_itt1[cxpoint1+i] = cx2[i]
+				elif cx2[i] in ind_cx1 :
+					ind_cx1.append(cx2[i])
+				elif cx2[i] in cx1 :
+					pass
+				elif cx2[i] not in ind_cx1 :
+					ind_itt1[cxpoint1+i] = cx2[i]
+
+		for e in range(cxpoint2 - cxpoint1):
+			for i in range(cxpoint2 - cxpoint1):
+				if cx1[i] not in ind_itt2 :
+					ind_itt2[cxpoint1+i] = cx1[i]
+				elif cx1[i] in ind_cx2 :
+					ind_cx2.append(cx1[i])
+				elif cx1[i] in cx2 :
+					pass
+				elif cx1[i] not in ind_cx2 :
+					ind_itt2[cxpoint1+i] = cx1[i]
 
 	return ind1, ind2
+
+# # Custom Crossover function for nd arrays
+# def NdcxTwoPointX(ind1, ind2, m, c):
+# 	for i in range(c):
+# 		ind_itt1 = ind1[i]
+# 		ind_itt2 = ind2[i]
+# 		cxpoint1 = random.randint(1, m)
+# 		cxpoint2 = random.randint(1, m - 1)
+# 		if cxpoint2 >= cxpoint1:
+# 			cxpoint2 += 1
+# 		else: 
+# 			cxpoint1, cxpoint2 = cxpoint2, cxpoint1		# Swap the two cx points
+# 		ind_itt1[cxpoint1:cxpoint2], ind_itt2[cxpoint1:cxpoint2] = \
+# 		ind_itt2[cxpoint1:cxpoint2], ind_itt1[cxpoint1:cxpoint2]
+
+# 		# Removing duplicates in child
+# 		cx1 = ind_itt1[cxpoint1:cxpoint2]
+# 		cx2 = ind_itt2[cxpoint1:cxpoint2]
+# 		cx1ncx2 = list(set(cx1).intersection(cx2))
+# 		cx1 = list(set(cx1).difference(cx1ncx2))
+# 		cx2 = list(set(cx2).difference(cx1ncx2))
+# 		verids = list(range(0,m))
+# 		del(verids[cxpoint1:cxpoint2])
+# 		idcx1 = 0
+# 		idcx2 = 0		
+# 		for e in verids: 
+# 			if ind_itt1[e] in cx1 : ind_itt1[e] = cx2[idcx1]; idcx1+=1
+# 			if ind_itt2[e] in cx2 : ind_itt2[e] = cx1[idcx2]; idcx2+=1
+# 		# if len(set(ind_itt1)) != m : print(ind_itt1)		# Check for duplicates after CX
+# 		# if len(set(ind_itt2)) != m : print(ind_itt2)
+
+# 	return ind1, ind2
 
 # Custom Mutate function for nd arrays
 def NdmutUniformInt(individual, m, c, low, up, indpb):
@@ -466,3 +512,4 @@ plt.ylabel('Crops')
 plt.xlabel('Months')
 plt.title('Crop Cycles')
 plt.show()
+
